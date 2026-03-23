@@ -1,0 +1,98 @@
+[
+    {
+        "id": "has_configuration_section",
+        "category": "structure",
+        "check": "Does the document contain a Configuration section that defines variables read from .memory-config with specific config keys and default values?",
+        "weight": 1.0
+    },
+    {
+        "id": "has_numbered_workflow_steps",
+        "category": "structure",
+        "check": "Does the document define a sequential workflow with at least 5 numbered steps, each with a clear heading and specific instructions?",
+        "weight": 1.5
+    },
+    {
+        "id": "has_routing_table",
+        "category": "structure",
+        "check": "Does the document include a routing table or decision matrix that maps entry types to specific destination files (MEMORY.md, project CLAUDE.md, learnings, daily notes)?",
+        "weight": 1.5
+    },
+    {
+        "id": "has_report_template",
+        "category": "structure",
+        "check": "Does the document include a structured report template (Step 7 or similar) showing the exact output format with sections for daily notes, global memory, project updates, signals, and patterns?",
+        "weight": 1.0
+    },
+    {
+        "id": "routes_to_four_destinations",
+        "category": "routing",
+        "check": "Does the document explicitly route entries to exactly four destination types: global MEMORY.md, project CLAUDE.md, personal learnings file, and daily notes?",
+        "weight": 1.5
+    },
+    {
+        "id": "global_vs_project_distinction",
+        "category": "routing",
+        "check": "Does the document provide clear rules or a rule of thumb for distinguishing what goes in global MEMORY.md versus project CLAUDE.md versus personal learnings?",
+        "weight": 1.0
+    },
+    {
+        "id": "daily_note_format_specified",
+        "category": "routing",
+        "check": "Does the document specify the daily note format including project grouping, work log entries, task tracking with checkboxes, and carry-over logic from previous days?",
+        "weight": 1.0
+    },
+    {
+        "id": "pattern_detection_defined",
+        "category": "analysis",
+        "check": "Does the document define at least 3 distinct pattern checks (such as duplicates, reinforcement, contradiction, stale detection) that run against existing memory entries?",
+        "weight": 1.0
+    },
+    {
+        "id": "signal_detection_defined",
+        "category": "analysis",
+        "check": "Does the document define signal detection categories (opportunity, risk, convergence) with concrete examples showing what each signal type looks like?",
+        "weight": 1.0
+    },
+    {
+        "id": "friction_detection_defined",
+        "category": "analysis",
+        "check": "Does the document define friction detection with escalation thresholds (e.g., 2+ appearances triggers a specific action)?",
+        "weight": 0.5
+    },
+    {
+        "id": "config_fallback_to_defaults",
+        "category": "portability",
+        "check": "Does the document explicitly state that if .memory-config is absent, PARA default paths are used as fallbacks?",
+        "weight": 1.0
+    },
+    {
+        "id": "paths_use_variables",
+        "category": "portability",
+        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $DREAM_LOG) throughout the workflow rather than hardcoded directory paths?",
+        "weight": 1.0
+    },
+    {
+        "id": "what_not_to_save",
+        "category": "constraints",
+        "check": "Does the document include explicit constraints about what NOT to save, with at least 3 specific anti-patterns or bad examples?",
+        "weight": 1.0
+    },
+    {
+        "id": "no_sensitive_data_rule",
+        "category": "constraints",
+        "check": "Does the document explicitly prohibit saving credentials, tokens, secrets, or PII to memory files?",
+        "weight": 0.5
+    },
+    {
+        "id": "memory_line_limit_handling",
+        "category": "constraints",
+        "check": "Does the document address the MEMORY.md line limit (e.g., 200 lines) with prioritization rules for what to write when near capacity?",
+        "weight": 0.5
+    },
+    {
+        "id": "promotion_queue_mechanism",
+        "category": "analysis",
+        "check": "Does the document describe a promotion queue or similar mechanism for patterns that have appeared multiple times, with a rule that promotion requires user approval (no auto-promote)?",
+        "weight": 1.0
+    }
+]

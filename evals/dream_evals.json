@@ -1,0 +1,98 @@
+[
+    {
+        "id": "has_configuration_section",
+        "category": "structure",
+        "check": "Does the document contain a Configuration section that defines variables read from .memory-config with specific config keys and default values?",
+        "weight": 1.0
+    },
+    {
+        "id": "has_analysis_passes",
+        "category": "structure",
+        "check": "Does the document define multiple distinct analysis passes (at least 4), each with a clear name, defined inputs, and defined outputs?",
+        "weight": 1.5
+    },
+    {
+        "id": "has_output_template",
+        "category": "structure",
+        "check": "Does the document include a structured output template showing the exact format of dream-log.md entries with section headings for different finding types?",
+        "weight": 1.0
+    },
+    {
+        "id": "has_trigger_logic",
+        "category": "structure",
+        "check": "Does the document describe at least two trigger modes (automatic and manual) with specific conditions for when each fires?",
+        "weight": 1.0
+    },
+    {
+        "id": "stale_detection_defined",
+        "category": "analysis",
+        "check": "Does the document define a stale detection pass that searches for entries not referenced in recent daily notes, with a specific time window (e.g., 7 days)?",
+        "weight": 1.0
+    },
+    {
+        "id": "friction_promotion_defined",
+        "category": "analysis",
+        "check": "Does the document define a friction promotion pass with specific recurrence thresholds (e.g., 3+ appearances for escalation)?",
+        "weight": 1.0
+    },
+    {
+        "id": "cross_project_signals_defined",
+        "category": "analysis",
+        "check": "Does the document define cross-project signal detection that compares concepts across project CLAUDE.md files and classifies findings into categories (e.g., opportunity, risk, convergence)?",
+        "weight": 1.5
+    },
+    {
+        "id": "promotion_queue_review",
+        "category": "analysis",
+        "check": "Does the document include a pass that reviews the MEMORY.md promotion queue and checks for continued relevance of queued items?",
+        "weight": 1.0
+    },
+    {
+        "id": "dormant_signal_detection",
+        "category": "analysis",
+        "check": "Does the document include a pass that detects dormant ideas or stagnant goals by comparing stated interests against recent activity?",
+        "weight": 0.5
+    },
+    {
+        "id": "never_writes_memory",
+        "category": "constraints",
+        "check": "Does the document explicitly state that /dream never writes to MEMORY.md, only to dream-log.md?",
+        "weight": 1.5
+    },
+    {
+        "id": "never_auto_promotes",
+        "category": "constraints",
+        "check": "Does the document explicitly state that /dream never auto-promotes entries to CLAUDE.md and always requires human review?",
+        "weight": 1.0
+    },
+    {
+        "id": "never_deletes",
+        "category": "constraints",
+        "check": "Does the document explicitly state that /dream never deletes stale entries, only flags them?",
+        "weight": 1.0
+    },
+    {
+        "id": "config_fallback_to_defaults",
+        "category": "portability",
+        "check": "Does the document explicitly state that if .memory-config is absent, PARA default paths are used as fallbacks?",
+        "weight": 1.0
+    },
+    {
+        "id": "paths_use_variables",
+        "category": "portability",
+        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $DREAM_LOG, $PROJECT_ROOT) rather than hardcoded directory paths in the analysis instructions?",
+        "weight": 1.0
+    },
+    {
+        "id": "reads_defined_sources",
+        "category": "completeness",
+        "check": "Does the document explicitly list all files/sources that /dream reads (MEMORY.md, dream-log, learnings, daily notes, project CLAUDE.md files) with specific paths or path patterns?",
+        "weight": 1.0
+    },
+    {
+        "id": "append_only_output",
+        "category": "constraints",
+        "check": "Does the document specify that dream-log.md is append-only (new entries are appended, old entries are never modified or removed)?",
+        "weight": 0.5
+    }
+]

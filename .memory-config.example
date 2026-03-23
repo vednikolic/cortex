@@ -1,0 +1,22 @@
+# .memory-config -- memory system path configuration
+# Copy this file to .memory-config in your workspace root and customize paths.
+# All paths are relative to workspace root unless absolute.
+# If this file is absent, PARA defaults are used.
+
+# Directory for daily notes (one file per day: YYYY-MM-DD.md)
+daily_dir: 2-areas/me/daily
+
+# File for personal learnings and working style observations
+learnings: 2-areas/me/learnings.md
+
+# File for /dream consolidation reports
+dream_log: 2-areas/me/dream-log.md
+
+# Directory containing weekly synthesis reports (v2)
+weekly_dir: 2-areas/me/weekly
+
+# Root directory for project subdirectories (each with its own CLAUDE.md)
+project_root: 1-projects
+
+# Workspace type: personal or work (controls concept DB isolation in v2)
+workspace: personal
