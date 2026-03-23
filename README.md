@@ -17,7 +17,7 @@ cd cortex
 ./install.sh
 ```
 
-The installer copies `/save` and `/dream` to `~/.claude/skills/` (global skill discovery) and optionally creates `.memory-config` in your workspace.
+The installer copies `/save` and `/dream` into your workspace's `.claude/skills/` directory (project-local skill discovery) and optionally creates `.memory-config`.
 
 ## What Ships
 
@@ -108,7 +108,7 @@ cortex/
 │   ├── eval.py              # LLM judge eval harness
 │   ├── save_evals.json      # Binary evals for /save
 │   └── dream_evals.json     # Binary evals for /dream
-├── install.sh               # Installer (copies skills to ~/.claude/skills/)
+├── install.sh               # Installer (copies skills into workspace .claude/skills/)
 ├── .memory-config.example   # Path configuration template
 └── LICENSE
 ```
