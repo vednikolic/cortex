@@ -12,11 +12,8 @@ learnings: 2-areas/me/learnings.md
 # File for /dream consolidation reports
 dream_log: 2-areas/me/dream-log.md
 
-# Directory containing weekly synthesis reports (v2)
-weekly_dir: 2-areas/me/weekly
-
 # Root directory for project subdirectories (each with its own CLAUDE.md)
 project_root: 1-projects
 
-# Workspace type: personal or work (controls concept DB isolation in v2)
+# Workspace type: personal or work (controls data isolation)
 workspace: personal

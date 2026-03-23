@@ -21,13 +21,11 @@ The installer copies `/save` and `/dream` to `~/.claude/skills/` (global skill d
 
 ## What Ships
 
-| Included in v1 | Deferred to v2 |
-|---|---|
-| `/save` skill | Concept graph |
-| `/dream` skill | `/review` skill |
-| `install.sh` | Hooks (auto-dream on session stop) |
-| `.memory-config` support | Weekly synthesis |
-| Eval suite | Cross-tool exporters (Cursor, Windsurf, Gemini CLI) |
+- `/save` skill
+- `/dream` skill
+- `install.sh`
+- `.memory-config` support
+- Eval suite for both skills
 
 ## Skills
 
@@ -81,7 +79,7 @@ dream_log: 2-areas/me/dream-log.md
 # Root directory for project subdirectories
 project_root: 1-projects
 
-# Workspace type (controls concept DB isolation in v2)
+# Workspace type (personal or work, controls data isolation)
 workspace: personal
 ```
 
