@@ -3,3 +3,4 @@
 __pycache__/
 .memory-config
 .worktrees/
+.venv/
