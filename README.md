@@ -1,13 +1,17 @@
 # Cortex
 
-The opinionated memory layer [Claude Code](https://docs.anthropic.com/en/docs/claude-code) ships without. One memory system, any workspace.
+Claude Code's built-in auto-memory dumps everything into one flat file. After a few weeks, it's cluttered with stale entries, duplicates, and noise that actively degrades context quality. Cortex replaces that with structured memory you control.
 
-## What It Does
+Two commands. Run them manually when you want. No background processes, no magic.
 
-- **Structured memory routing**: `/save` captures session learnings and routes them to the right file (global memory, project CLAUDE.md, personal learnings, or daily notes)
-- **Background consolidation**: `/dream` runs 5 analysis passes over your memory files to detect stale entries, friction patterns, cross-project signals, promotion candidates, and dormant ideas
-- **Portable paths**: a single `.memory-config` file maps memory locations to your directory structure. Falls back to PARA defaults if absent
-- **Eval suite included**: binary evals for both skills so you can verify quality after forking or customizing
+## Why
+
+Claude Code remembers things, but not well. Auto-memory entries pile up without organization, go stale without review, and live in a single file with no routing logic. The result: your agent's context gets worse over time, not better.
+
+Cortex fixes this with two slash commands:
+
+- **`/save`** routes session learnings to the right file instead of dumping everything in one place
+- **`/dream`** reviews what's accumulated and surfaces what needs attention
 
 ## Install
 
@@ -17,77 +21,75 @@ cd cortex
 ./install.sh
 ```
 
-The installer copies `/save` and `/dream` into your workspace's `.claude/skills/` directory (project-local skill discovery) and optionally creates `.memory-config`.
+The installer copies both skills into your workspace's `.claude/skills/` directory and optionally creates a `.memory-config` file to customize paths.
 
-## What Ships
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
-- `/save` skill
-- `/dream` skill
-- `install.sh`
-- `.memory-config` support
-- Eval suite for both skills
-
-## Skills
+## Usage
 
 ### /save
 
-Captures what happened in a session and persists it to the right place. Routes entries across four destinations:
+Run at the end of a session or after completing meaningful work. `/save` reads the conversation, extracts what's worth keeping, and routes each entry to one of four destinations:
 
-1. **Global MEMORY.md** -- cross-project knowledge, environment facts, mental models, repeatable workflows
-2. **Project CLAUDE.md** -- architecture decisions, implementation state, friction log, decision register
-3. **Personal learnings** -- working style, preferences, collaboration patterns
-4. **Daily notes** -- work log with time anchors, tasks with carry-over from previous days
+| Destination | What goes there | Example |
+|---|---|---|
+| **MEMORY.md** | Cross-project knowledge, environment facts, reusable patterns | "Homebrew Python is at /opt/homebrew/bin/python3.12" |
+| **Project CLAUDE.md** | Architecture decisions, implementation state, project-specific context | "Auth uses JWT with 24h expiry, refresh tokens in httpOnly cookies" |
+| **Learnings file** | Working style, collaboration preferences, personal process insights | "Breaking PRs into <300 line chunks gets faster reviews" |
+| **Daily notes** | Work log with timestamps, task progress, carry-over items | "Finished API migration, auth endpoint still needs tests" |
 
-After routing, `/save` checks for patterns (duplicates, reinforcement, contradictions, staleness) and surfaces signals (opportunities, risks, convergence across projects). Run it at the end of a session or after completing meaningful work.
+After routing, `/save` checks for patterns across your memory: duplicates, contradictions, entries that reinforce each other, and signals worth surfacing.
 
 ```
 /save
-/save eval design
+/save auth refactor decisions
 ```
 
 ### /dream
 
-Background consolidation that reads what `/save` has written and looks for what it implies. Five analysis passes run in sequence:
+Run periodically (weekly works well) to consolidate what `/save` has written. Five analysis passes:
 
-1. **Stale detection** -- flags entries not referenced in 7+ days
-2. **Friction promotion** -- escalates friction appearing 3+ times to automation candidates
-3. **Cross-project signals** -- detects shared concepts, conflicting assumptions, and converging needs across projects
-4. **Promotion queue review** -- checks whether queued patterns are ready for root CLAUDE.md
-5. **Dormant idea detection** -- surfaces ideas mentioned multiple times but never acted on
+1. **Stale detection** flags entries not referenced in 7+ days
+2. **Friction patterns** escalates recurring friction (3+ mentions) to automation candidates
+3. **Cross-project signals** finds shared concepts, conflicting assumptions, and converging needs across projects
+4. **Promotion candidates** checks whether patterns are mature enough for root CLAUDE.md
+5. **Dormant ideas** surfaces things mentioned multiple times but never acted on
 
-Output appends to `dream-log.md`. Dream never writes to MEMORY.md, never auto-promotes, never deletes. It surfaces findings. You decide what to act on.
+Output appends to `dream-log.md`. Dream never modifies your memory files, never auto-promotes, never deletes. It surfaces findings. You decide what to act on.
 
 ```
 /dream
 /dream my-project
 ```
 
+## When to Use What
+
+| Situation | Command |
+|---|---|
+| Wrapping up a coding session | `/save` |
+| Made a key architecture decision | `/save` |
+| Learned something about your tools or environment | `/save` |
+| Memory files feel cluttered or stale | `/dream` |
+| Starting a new week, want to clean house | `/dream` |
+| Wondering if patterns are emerging across projects | `/dream` |
+
 ## Configuration
 
-Create `.memory-config` in your workspace root to customize paths. All paths are relative to the workspace root unless absolute.
+Create `.memory-config` in your workspace root to map memory locations to your directory structure:
 
 ```
-# Directory for daily notes
 daily_dir: 2-areas/me/daily
-
-# Personal learnings file
 learnings: 2-areas/me/learnings.md
-
-# Dream consolidation log
 dream_log: 2-areas/me/dream-log.md
-
-# Root directory for project subdirectories
 project_root: 1-projects
-
-# Workspace type (personal or work, controls data isolation)
 workspace: personal
 ```
 
-If `.memory-config` is absent, PARA defaults are used (`2-areas/me/daily`, `1-projects`, etc.). See `.memory-config.example` for the full template.
+Without `.memory-config`, PARA defaults are used. See `.memory-config.example` for the full template.
 
 ## Evals
 
-Both skills ship with binary eval suites scored by an LLM judge via `claude -p`.
+Both skills ship with binary eval suites so you can verify quality after forking or customizing.
 
 ```bash
 cd evals
@@ -95,27 +97,27 @@ python3 eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json --verbos
 python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_evals.json --verbose
 ```
 
-Each eval is a yes/no question about the skill document. Composite score is the weighted sum of passing evals. Use `--output json` for machine-readable results. Fork the repo, customize the skills, and run evals to verify you did not regress.
+Each eval is a yes/no question scored by an LLM judge via `claude -p`. Use `--output json` for machine-readable results.
 
 ## Project Structure
 
 ```
 cortex/
 ├── .claude/skills/
-│   ├── save/SKILL.md        # /save skill definition
-│   └── dream/SKILL.md       # /dream skill definition
+│   ├── save/SKILL.md        # /save skill
+│   └── dream/SKILL.md       # /dream skill
 ├── evals/
 │   ├── eval.py              # LLM judge eval harness
 │   ├── save_evals.json      # Binary evals for /save
 │   └── dream_evals.json     # Binary evals for /dream
-├── install.sh               # Installer (copies skills into workspace .claude/skills/)
+├── install.sh               # Copies skills into your workspace
 ├── .memory-config.example   # Path configuration template
 └── LICENSE
 ```
 
 ## Author
 
-Ved Nikolic ([vednikolic](https://github.com/vednikolic)) -- ved@vednikolic.com
+Ved Nikolic ([vednikolic](https://github.com/vednikolic))
 
 ## License
 
