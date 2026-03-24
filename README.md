@@ -2,7 +2,7 @@
 
 Claude Code's built-in auto-memory dumps everything into one flat file. After a few weeks, it's cluttered with stale entries, duplicates, and noise that actively degrades context quality. Cortex replaces that with structured memory you control.
 
-Two commands. Run them manually when you want. No background processes, no magic.
+Two skills and a CLI. Run them manually when you want. No background processes, no magic.
 
 ## Why
 
@@ -62,6 +62,59 @@ Output appends to `dream-log.md`. Dream never modifies your memory files, never 
 /dream my-project
 ```
 
+## Phase 2: Knowledge Graph
+
+The `concepts` CLI builds a knowledge graph from your sessions. `/save` extracts concepts automatically; `/dream` uses graph data for higher-confidence cross-project signals.
+
+### Quick start
+
+```bash
+concepts init                    # Create concepts.db in workspace root
+# ... use /save normally, concepts are extracted automatically ...
+concepts graph                   # See your knowledge graph
+concepts dream-prep              # Generate graph data for /dream
+```
+
+### Concepts CLI
+
+| Command | Description |
+|---|---|
+| `concepts init` | Initialize concepts database |
+| `concepts upsert <name>` | Create or update a concept |
+| `concepts edge <from> <to> <relation>` | Create or strengthen an edge |
+| `concepts query <name>` | Query a concept and its relationships |
+| `concepts list` | List all concept names |
+| `concepts shared` | Show concepts appearing in 2+ projects |
+| `concepts stale` | Show concepts not recently referenced |
+| `concepts hot` | Show most active concepts |
+| `concepts graph` | Show graph summary |
+| `concepts stats` | Show statistics and weight distributions |
+| `concepts merge <source> <target>` | Merge source concept into target |
+| `concepts correct <name> <new_name>` | Rename a concept |
+| `concepts undo-last` | Revert most recent extraction |
+| `concepts verify` | Check database integrity |
+| `concepts log-extraction` | Log an extraction event |
+| `concepts dream-prep` | Generate or verify dream-context.json |
+
+All commands support `--db <path>` to override database location and `--json` for machine-readable output.
+
+### How it works
+
+1. `/save` runs Step 4b after each session: computes session weight, proposes concepts, creates edges, logs the extraction
+2. The graph accumulates over sessions. Canonicalization prevents duplicates (fuzzy matching, abbreviation handling)
+3. `concepts dream-prep` generates `dream-context.json` with shared concepts, hot concepts, stale concepts, and graph summary
+4. `/dream` reads this file for higher-confidence cross-project signal detection (Pass 3) and reports graph health (Pass 6)
+
+### Configuration
+
+Add project definitions to `.memory-config`:
+
+```
+projects:
+  cortex: 1-projects/memory/cortex
+  website: 1-projects/ved-website
+```
+
 ## When to Use What
 
 | Situation | Command |
@@ -87,14 +140,23 @@ workspace: personal
 
 Without `.memory-config`, PARA defaults are used. See `.memory-config.example` for the full template.
 
-## Evals
+## Testing
 
-Both skills ship with binary eval suites so you can verify quality after forking or customizing.
+### Unit tests
+
+```bash
+cd cortex
+python3.12 -m pytest tests/ -v
+```
+
+### LLM evals
 
 ```bash
 cd evals
 python3 eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json --verbose
 python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_evals.json --verbose
+python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
+python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_graph_evals.json --verbose
 ```
 
 Each eval is a yes/no question scored by an LLM judge via `claude -p`. Use `--output json` for machine-readable results.
@@ -104,14 +166,30 @@ Each eval is a yes/no question scored by an LLM judge via `claude -p`. Use `--ou
 ```
 cortex/
 ├── .claude/skills/
-│   ├── save/SKILL.md        # /save skill
-│   └── dream/SKILL.md       # /dream skill
-├── evals/
-│   ├── eval.py              # LLM judge eval harness
-│   ├── save_evals.json      # Binary evals for /save
-│   └── dream_evals.json     # Binary evals for /dream
-├── install.sh               # Copies skills into your workspace
-├── .memory-config.example   # Path configuration template
+│   ├── save/SKILL.md            # /save skill (with Step 4b extraction)
+│   └── dream/SKILL.md           # /dream skill (with graph integration)
+├── cortex_lib/                  # Python library (stdlib-only)
+│   ├── __init__.py
+│   ├── db.py                    # Schema, connection, verify
+│   ├── canon.py                 # Two-tier canonicalization
+│   ├── ops.py                   # CRUD operations
+│   ├── weight.py                # Session weight computation
+│   ├── analysis.py              # Graph analysis queries
+│   ├── correction.py            # Correct, undo-last, merge
+│   ├── dream_prep.py            # Generate dream-context.json
+│   └── cli.py                   # argparse CLI
+├── concepts                     # CLI entry point
+├── abbreviations.json           # ~40 seeded abbreviation pairs
+├── dream-prep.sh                # Bash wrapper for dream_prep.py
+├── tests/                       # pytest suite
+├── evals/                       # LLM eval suites
+│   ├── eval.py                  # LLM judge harness
+│   ├── save_evals.json          # /save evals
+│   ├── dream_evals.json         # /dream evals
+│   ├── extraction_evals.json    # Step 4b extraction evals
+│   └── dream_graph_evals.json   # Dream graph integration evals
+├── install.sh                   # Installs skills + CLI
+├── .memory-config.example       # Path configuration template
 └── LICENSE
 ```
 

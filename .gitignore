@@ -4,3 +4,9 @@ __pycache__/
 .memory-config
 .worktrees/
 .venv/
+
+# Phase 2: concepts graph
+concepts.db
+concepts.db-wal
+concepts.db-shm
+dream-context.json
