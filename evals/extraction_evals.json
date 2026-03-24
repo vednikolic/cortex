@@ -1,0 +1,18 @@
+[
+  {"name": "extraction_produces_valid_concepts", "prompt": "After /save Step 4b runs, does the extraction produce concepts that are meaningful (tools, patterns, decisions) and not noise (filler words, generic terms)?", "category": "extraction", "weight": 1.5},
+  {"name": "extraction_respects_adaptive_cap", "prompt": "Does the extraction respect the session-weight-adaptive cap? (weight 1-2: max 3, weight 3: max 5, weight 4-5: max 8)", "category": "extraction", "weight": 1.5},
+  {"name": "extraction_maps_existing_vocabulary", "prompt": "Does the extraction check existing concepts first and prefer matching over creating new entries?", "category": "extraction", "weight": 1.5},
+  {"name": "extraction_skips_ambiguous_sessions", "prompt": "For sessions with no clear concepts (pure Q&A, trivial debugging), does extraction skip or produce zero concepts?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_writes_log", "prompt": "Does each extraction write to extraction_log with all required fields (session_hash, concepts_proposed, created_concepts, created_edges, rejected count, weight)?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_creates_edges", "prompt": "When concepts have explicit relationships, does extraction create edges with valid relation types from the 8-type vocabulary?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_uses_session_weight", "prompt": "Is session weight computed from the deterministic formula (1 + token>5000 + concepts>=2 + decisions>=1 + friction>=1, capped at 5)?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_sensitive_skip", "prompt": "Does /save --sensitive skip Step 4b entirely, creating zero concepts, edges, or extraction_log entries?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_kind_assignment", "prompt": "Are concept kinds (topic, tool, pattern, decision, person, project) assigned correctly based on context?", "category": "extraction", "weight": 0.5},
+  {"name": "extraction_canonical_matching", "prompt": "Does extraction canonicalize proposed concepts against existing vocabulary using the concepts CLI before creating new entries?", "category": "extraction", "weight": 1.5},
+  {"name": "extraction_rejected_count_only", "prompt": "Is the rejected column in extraction_log an integer count, NOT a JSON array of concept names? This is a privacy requirement.", "category": "privacy", "weight": 1.5},
+  {"name": "extraction_session_hash_unique", "prompt": "Does the session_hash include an ISO timestamp to prevent collisions on formulaic summaries?", "category": "extraction", "weight": 0.5},
+  {"name": "extraction_project_field", "prompt": "Is the project field populated on concept_sources using the formal project definition from .memory-config or working directory?", "category": "extraction", "weight": 1.0},
+  {"name": "extraction_graph_warming_ux", "prompt": "After extraction, does /save report graph status (N concepts, M edges, K projects) and surface invitations at 5-concept and gate thresholds?", "category": "ux", "weight": 0.5},
+  {"name": "extraction_no_db_graceful", "prompt": "If concepts.db does not exist, does Step 4b skip gracefully without errors or warnings that would confuse Phase 1 users?", "category": "robustness", "weight": 1.0},
+  {"name": "extraction_preserves_existing_flow", "prompt": "Does the addition of Step 4b preserve all existing /save steps (1 through 9) without breaking any of them?", "category": "integration", "weight": 1.5}
+]

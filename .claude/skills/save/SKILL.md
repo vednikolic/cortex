@@ -185,6 +185,98 @@ Surface detected signals in Step 7 under `Signals`.
 
 ---
 
+### Step 4b: Concept extraction (Phase 2, requires concepts CLI)
+
+**Skip this step entirely if:**
+- The `--sensitive` flag was provided (req 2.8)
+- `concepts.db` does not exist in the workspace root (user has not run `concepts init`)
+- The session had no meaningful content (pure Q&A with no decisions, tools, or patterns)
+
+**1. Compute session weight:**
+
+From the Step 2 summary, estimate:
+- `token_count`: short session < 5000, medium 5000-15000, long > 15000 tokens
+- `concepts`: count of distinct topics, tools, or patterns identified
+- `decisions`: count of decisions logged
+- `friction`: count of friction points identified
+
+The weight formula is: `weight = 1 + (token_count>5000) + (concepts>=2) + (decisions>=1) + (friction>=1)`, capped at 5.
+
+The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to 5, weight 4-5 up to 8.
+
+**2. Query existing vocabulary:**
+
+```bash
+~/.cortex/concepts list --json
+```
+
+This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `concepts graph --json` to get edge and project counts for context.
+
+**3. Propose concepts:**
+
+From the session summary, identify up to the extraction cap number of concepts that:
+- Represent tools, patterns, decisions, or recurring themes (not ephemeral details)
+- Map against existing vocabulary first (prefer matching over creating new)
+- Have at least one clear relationship to another concept
+
+For each concept, determine:
+- `name`: canonical name (check existing vocabulary)
+- `kind`: one of topic, tool, pattern, decision, person, project
+- Relationships: edges to existing or co-proposed concepts, with relation type from: related-to, depends-on, conflicts-with, enables, is-instance-of, supersedes, blocked-by, derived-from
+
+**4. Execute extraction:**
+
+Compute a session hash: `hashlib.md5((session_summary + ISO_timestamp).encode()).hexdigest()[:16]`
+
+Determine the project name from the working directory or `.memory-config` `projects:` section.
+
+For each proposed concept:
+```bash
+~/.cortex/concepts upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
+```
+
+For each relationship:
+```bash
+~/.cortex/concepts edge "$from" "$to" "$relation" --session "$session_hash"
+```
+
+Concepts that do not meet quality threshold (too generic, already fully captured, ephemeral) are counted as rejected but their names are NOT logged. Only the rejected count is stored.
+
+**5. Log the extraction:**
+
+After all upserts and edges are created, log the extraction event. This is critical for undo-last support and Phase 5 training data.
+
+```bash
+~/.cortex/concepts log-extraction --session "$session_hash" \
+  --proposed '["concept1", "concept2"]' \
+  --created '["concept1"]' \
+  --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' \
+  --rejected 1 \
+  --weight $weight
+```
+
+Alternatively, if calling from Python within the /save skill context, use the `log_extraction` function directly. The key fields are:
+- `session_hash`: unique per extraction (includes ISO timestamp)
+- `concepts_proposed`: all concepts considered (JSON array of names)
+- `created_concepts`: concepts actually created or updated (JSON array)
+- `created_edges`: edges created (JSON array of {from, to, relation} objects)
+- `rejected`: integer count of concepts that did not meet quality threshold
+- `weight`: session weight computed in sub-step 1
+
+**6. Report graph status (graph warming UX):**
+
+After extraction, append a graph status line to the Step 7 report:
+
+```
+Graph: N concepts, M edges, K projects.
+```
+
+At specific thresholds, add invitations:
+- At 5+ concepts: `Tip: Run 'concepts graph' to see your knowledge graph.`
+- At 10+ concepts across 2+ projects: `Your graph is ready for full /dream integration. Run 'concepts dream-prep' before your next /dream.`
+
+---
+
 ### Step 5: Write daily note
 
 **Location:** `$DAILY_DIR/YYYY-MM-DD.md`

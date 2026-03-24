@@ -1,19 +1,25 @@
-# .memory-config -- memory system path configuration
-# Copy this file to .memory-config in your workspace root and customize paths.
-# All paths are relative to workspace root unless absolute.
-# If this file is absent, PARA defaults are used.
+# Cortex memory system configuration
+# Copy to your workspace root as .memory-config
 
-# Directory for daily notes (one file per day: YYYY-MM-DD.md)
+# PARA directory defaults
 daily_dir: 2-areas/me/daily
-
-# File for personal learnings and working style observations
 learnings: 2-areas/me/learnings.md
-
-# File for /dream consolidation reports
 dream_log: 2-areas/me/dream-log.md
-
-# Root directory for project subdirectories (each with its own CLAUDE.md)
 project_root: 1-projects
 
-# Workspace type: personal or work (controls data isolation)
+# Workspace isolation (separate concepts.db per workspace)
 workspace: personal
+
+# Phase 2: concepts graph
+# db_path: concepts.db
+
+# Project definitions (Phase 2)
+# Maps project names to directory paths. Default: each unique parent directory = one project.
+# Uncomment and customize for non-directory-based projects:
+# projects:
+#   cortex: 1-projects/memory/cortex
+#   website: 1-projects/ved-website
+#   strategy: 2-areas/me
+
+# Sensitive session handling
+# default_sensitive: false

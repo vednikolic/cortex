@@ -65,6 +65,42 @@ fi
 
 echo ""
 
+# Phase 2: Install concepts CLI
+CORTEX_HOME="$HOME/.cortex"
+echo "Installing concepts CLI to $CORTEX_HOME..."
+mkdir -p "$CORTEX_HOME"
+
+# Copy CLI files
+cp -r "$CORTEX_DIR/cortex_lib" "$CORTEX_HOME/"
+cp "$CORTEX_DIR/concepts" "$CORTEX_HOME/"
+cp "$CORTEX_DIR/abbreviations.json" "$CORTEX_HOME/"
+cp "$CORTEX_DIR/dream-prep.sh" "$CORTEX_HOME/"
+chmod +x "$CORTEX_HOME/concepts"
+chmod +x "$CORTEX_HOME/dream-prep.sh"
+
+echo "Concepts CLI installed."
+
+# Check if ~/.cortex is in PATH
+if ! echo "$PATH" | tr ':' '\n' | grep -q "$CORTEX_HOME"; then
+    echo ""
+    echo "Add to your shell profile (~/.zshrc or ~/.bashrc):"
+    echo "  export PATH=\"\$HOME/.cortex:\$PATH\""
+    echo ""
+fi
+
+# Offer to initialize concepts.db
+WORKSPACE_PATH="$workspace_path"
+if [ -n "$WORKSPACE_PATH" ] && [ ! -f "$WORKSPACE_PATH/concepts.db" ]; then
+    read -p "Initialize concepts.db in $WORKSPACE_PATH? [y/N] " INIT_DB
+    if [ "$INIT_DB" = "y" ] || [ "$INIT_DB" = "Y" ]; then
+        cd "$WORKSPACE_PATH"
+        "$CORTEX_HOME/concepts" init
+        cd - > /dev/null
+    fi
+fi
+
+echo ""
+
 # Self-test: verify skill files are in place
 echo "Verifying installation..."
 echo ""
@@ -89,14 +125,24 @@ for skill in "${SKILLS[@]}"; do
     fi
 done
 
+# Self-test: verify concepts CLI
+if "$CORTEX_HOME/concepts" --version > /dev/null 2>&1; then
+    echo "  PASS: concepts CLI ($("$CORTEX_HOME/concepts" --version))"
+    test_passed=$((test_passed + 1))
+else
+    echo "  FAIL: concepts CLI"
+    test_failed=$((test_failed + 1))
+fi
+
 echo ""
 
 if [ "$test_failed" -eq 0 ]; then
-    echo "All $test_passed skills installed."
+    echo "All $test_passed checks passed."
     echo ""
     echo "Usage (in a Claude Code session started from $workspace_path):"
     echo "  /save              Save session learnings to memory"
     echo "  /dream             Run background memory consolidation"
+    echo "  concepts <cmd>     Manage the knowledge graph"
     echo ""
     echo "To customize paths, edit .memory-config in your workspace root."
     echo "Without .memory-config, PARA defaults are used (2-areas/me/daily, etc.)."

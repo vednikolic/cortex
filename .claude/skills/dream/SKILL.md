@@ -89,6 +89,23 @@ Do not read full session transcripts. Too expensive and too noisy. The daily not
 
 ---
 
+## Graph pre-check (Phase 2)
+
+Before running analysis passes, check for `dream-context.json` in the workspace root:
+
+1. **File exists:** Validate freshness by running:
+   ```bash
+   ~/.cortex/concepts dream-prep --verify
+   ```
+   - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
+   - Exit code 1 (prints "stale: ..."): warn `"Graph data stale. Run 'concepts dream-prep' for fresh data."` Continue without graph data
+   - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale
+2. **File does not exist:** Continue with Phase 1 behavior (no graph data). This is expected before the user runs `concepts init`
+
+When graph data is available, the variable `$GRAPH_DATA` refers to the parsed dream-context.json contents.
+
+---
+
 ## Analysis passes
 
 Run each pass in sequence. Each pass is cheap (pattern match over structured text). Only the signal surfacing requires model reasoning.
@@ -119,6 +136,12 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 
 **Input:** All project CLAUDE.md files under `$PROJECT_ROOT/`, MEMORY.md, the last 7 daily notes.
 **Output:** 3-5 signal entries for the dream-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
+
+**When $GRAPH_DATA is available**, use structured graph data instead of raw text matching:
+- Use `shared_concepts` for cross-project signals (replaces pairwise concept comparison)
+- Use `hot_concepts` for concept velocity and trending patterns
+- Use `stale_concepts` as additional input for stale detection (supplement Pass 1)
+- Classify signals as before (OPPORTUNITY / RISK / CONVERGENCE) with higher confidence when backed by graph data with edge strength >= 2
 
 This is the second-brain pass. It requires model reasoning (string matching alone cannot detect conceptual overlap).
 
@@ -159,6 +182,21 @@ Examples of what this catches:
 5. If a stated goal from learnings.md has zero Work Log entries in the last 14 days: flag as "stagnant goal".
 6. If an interest or growth area from learnings.md connects to an active project (appears in a project CLAUDE.md): flag as "connection opportunity" with the project name.
 
+### Pass 6: Graph health (Phase 2)
+
+**Input:** `$GRAPH_DATA` (if available). Skip this pass if no graph data.
+**Output:** A graph health section in the dream-log entry.
+
+1. Report graph summary: N concepts, M edges, K projects, N normalization rules
+2. Flag any Phase 2 gate metrics below threshold:
+   - Fewer than 10 concepts
+   - Fewer than 2 projects
+   - No edges with strength >= 3
+   - No cross-project concepts
+3. Surface concepts with edge strength >= 3 (mature signals worth reviewing)
+4. Note extraction rate trends if stats data shows velocity change
+5. If graph data was stale, note that and recommend running dream-prep
+
 ---
 
 ## Output: dream-log.md entry
@@ -190,6 +228,11 @@ Append to `$DREAM_LOG`:
 
 ### No action required
 - my-dashboard CLAUDE.md: all entries referenced recently, no stale flags
+
+### Graph health
+- Graph: N concepts, M edges, K projects
+- Gate progress: [which Phase 2 gate criteria are met / not met]
+- Mature signals: [concepts with strength >= 3 edges]
 ```
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
