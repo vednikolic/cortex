@@ -1,5 +1,6 @@
 """Tests for CRUD operations."""
 
+import pytest
 from cortex_lib.ops import upsert_concept, query_concept, log_extraction
 
 
@@ -27,11 +28,8 @@ def test_upsert_fuzzy_matches_existing(db):
 
 
 def test_upsert_invalid_kind_raises(db):
-    try:
+    with pytest.raises(ValueError):
         upsert_concept(db, "test", kind="invalid_kind")
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass
 
 
 def test_upsert_adds_source(db):

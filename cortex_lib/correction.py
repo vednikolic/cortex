@@ -2,18 +2,14 @@
 
 import json
 import sqlite3
-from datetime import datetime, timezone
 
 from .canon import add_normalization_rule
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+from .db import utc_now
 
 
 def correct_concept(conn: sqlite3.Connection, old_name: str, new_name: str) -> dict:
     """Rename a concept. Updates aliases, normalization rules, logs correction."""
-    now = _now()
+    now = utc_now()
 
     concept = conn.execute(
         "SELECT id, name, aliases FROM concepts WHERE LOWER(name) = LOWER(?)",
@@ -120,7 +116,7 @@ def undo_last_extraction(conn: sqlite3.Connection) -> dict:
 
 def merge_concepts(conn: sqlite3.Connection, source_name: str, target_name: str) -> dict:
     """Merge source concept into target. Moves all edges, sources, and normalization rules."""
-    now = _now()
+    now = utc_now()
 
     source = conn.execute(
         "SELECT id, name, aliases FROM concepts WHERE LOWER(name) = LOWER(?)",

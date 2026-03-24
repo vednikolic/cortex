@@ -2,15 +2,10 @@
 
 import json
 import sqlite3
-from datetime import datetime, timezone
 from typing import Optional
 
 from .canon import canonicalize_cli, add_normalization_rule
-from .db import VALID_RELATIONS, VALID_KINDS
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+from .db import VALID_RELATIONS, VALID_KINDS, utc_now
 
 
 def upsert_concept(conn: sqlite3.Connection, name: str, kind: str = 'topic',
@@ -20,7 +15,7 @@ def upsert_concept(conn: sqlite3.Connection, name: str, kind: str = 'topic',
     if kind not in VALID_KINDS:
         raise ValueError(f"Invalid kind '{kind}'. Must be one of: {', '.join(sorted(VALID_KINDS))}")
 
-    now = _now()
+    now = utc_now()
     match = canonicalize_cli(name, conn)
 
     if match:
@@ -67,7 +62,7 @@ def add_edge(conn: sqlite3.Connection, from_name: str, to_name: str,
             f"Invalid relation '{relation}'. Must be one of: {', '.join(sorted(VALID_RELATIONS))}"
         )
 
-    now = _now()
+    now = utc_now()
     from_match = canonicalize_cli(from_name, conn)
     to_match = canonicalize_cli(to_name, conn)
 
@@ -159,7 +154,7 @@ def log_extraction(conn: sqlite3.Connection, session_hash: str,
                    created_edges: list[dict], rejected_count: int,
                    weight: int) -> int:
     """Log an extraction event. Returns extraction_log id."""
-    now = _now()
+    now = utc_now()
     cursor = conn.execute(
         "INSERT INTO extraction_log (session_hash, timestamp, concepts_proposed, "
         "created_concepts, created_edges, rejected, weight, created_at) "

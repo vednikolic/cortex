@@ -8,16 +8,13 @@ Both tiers write to normalization_rules on match.
 import difflib
 import json
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from .db import utc_now
+
 FUZZY_THRESHOLD = 0.8
 SHORT_STRING_MAX = 4
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def load_abbreviations(path: Optional[Path] = None) -> dict[str, str]:
@@ -32,7 +29,7 @@ def load_abbreviations(path: Optional[Path] = None) -> dict[str, str]:
 
 def seed_abbreviations(conn: sqlite3.Connection, abbreviations: dict[str, str]) -> int:
     """Seed normalization_rules from abbreviation dict. Returns count of new rules."""
-    now = _now()
+    now = utc_now()
     added = 0
     for abbrev, full_name in abbreviations.items():
         row = conn.execute(
@@ -94,7 +91,7 @@ def canonicalize_cli(name: str, conn: sqlite3.Connection) -> Optional[dict]:
             'confidence': 1.0,
         }
 
-    # Alias match
+    # Alias match (O(n) scan; acceptable for personal graphs <1000 concepts)
     all_concepts = conn.execute("SELECT id, name, aliases FROM concepts").fetchall()
     for concept in all_concepts:
         aliases = json.loads(concept['aliases'])
@@ -130,13 +127,16 @@ def canonicalize_cli(name: str, conn: sqlite3.Connection) -> Optional[dict]:
 def add_normalization_rule(conn: sqlite3.Connection, variant: str,
                            canonical_id: int, source: str = 'cli') -> None:
     """Add or update a normalization rule. Increments confidence on repeat."""
-    now = _now()
+    now = utc_now()
     existing = conn.execute(
-        "SELECT id, confidence FROM normalization_rules WHERE LOWER(variant) = ?",
+        "SELECT id, confidence, canonical_id FROM normalization_rules WHERE LOWER(variant) = ?",
         (variant.lower(),)
     ).fetchone()
 
     if existing:
+        if existing['canonical_id'] != canonical_id and existing['confidence'] >= 1.0:
+            # Existing high-confidence rule points elsewhere; do not silently remap
+            return
         conn.execute(
             "UPDATE normalization_rules SET confidence = confidence + 0.1, "
             "canonical_id = ?, updated_at = ? WHERE id = ?",

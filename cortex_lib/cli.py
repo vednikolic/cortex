@@ -11,7 +11,7 @@ from .canon import load_abbreviations, seed_abbreviations
 from .ops import upsert_concept, add_edge, query_concept, log_extraction
 from .analysis import (
     shared_concepts, stale_concepts, hot_concepts,
-    graph_summary, weight_stats, apply_confidence_decay,
+    graph_summary, weight_stats,
 )
 from .correction import correct_concept, undo_last_extraction, merge_concepts
 
@@ -33,6 +33,9 @@ def cmd_init(args):
         if count:
             print(f"Seeded {count} abbreviation rules")
     conn.close()
+    if not (db_path.parent / '.memory-config').exists():
+        print("Note: No .memory-config found. Create one or use --db to specify the database path.",
+              file=sys.stderr)
     return 0
 
 
@@ -285,9 +288,8 @@ def cmd_dream_prep(args):
         if not context_path.exists():
             print("stale: dream-context.json does not exist")
             return 1
-        import json as _json
         with open(context_path) as f:
-            data = _json.load(f)
+            data = json.load(f)
         if validate_content_hash(data, db_path):
             print("fresh")
             return 0

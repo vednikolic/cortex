@@ -2,6 +2,8 @@
 
 import json
 from datetime import datetime, timezone, timedelta
+
+import pytest
 from cortex_lib.ops import upsert_concept, add_edge
 
 
@@ -36,20 +38,14 @@ def test_edge_history_tracking(db):
 def test_edge_invalid_relation(db):
     upsert_concept(db, "python")
     upsert_concept(db, "sqlite")
-    try:
+    with pytest.raises(ValueError):
         add_edge(db, "python", "sqlite", "invalid-relation")
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass
 
 
 def test_edge_nonexistent_concept(db):
     upsert_concept(db, "python")
-    try:
+    with pytest.raises(ValueError):
         add_edge(db, "python", "nonexistent", "related-to")
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass
 
 
 def test_all_eight_relations_valid(db):

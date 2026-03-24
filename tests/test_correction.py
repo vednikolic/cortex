@@ -1,6 +1,8 @@
 """Correction primitive tests: correct, undo-last, merge (reqs 2.20, 2.21, 2.T5)."""
 
 import json
+
+import pytest
 from cortex_lib.ops import upsert_concept, add_edge, log_extraction
 from cortex_lib.correction import correct_concept, undo_last_extraction, merge_concepts
 
@@ -56,11 +58,8 @@ def test_correct_creates_normalization_rule(db):
 def test_correct_conflict_raises(db):
     upsert_concept(db, "python")
     upsert_concept(db, "javascript")
-    try:
+    with pytest.raises(ValueError, match="already exists"):
         correct_concept(db, "python", "javascript")
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert 'already exists' in str(e).lower()
 
 
 def test_undo_last_removes_created_concepts(db):
@@ -92,11 +91,8 @@ def test_undo_last_removes_edges(db):
 
 
 def test_undo_last_empty_raises(db):
-    try:
+    with pytest.raises(ValueError):
         undo_last_extraction(db)
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass
 
 
 def test_merge_combines_concepts(db):
@@ -126,8 +122,5 @@ def test_merge_combines_sources(db):
 
 def test_merge_self_raises(db):
     upsert_concept(db, "python")
-    try:
+    with pytest.raises(ValueError):
         merge_concepts(db, "python", "python")
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass

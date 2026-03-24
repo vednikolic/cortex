@@ -1,6 +1,7 @@
 """Schema definition and database management for cortex concepts graph."""
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -93,6 +94,11 @@ VALID_PRIVACY = frozenset({'private', 'work', 'shared'})
 VALID_KINDS = frozenset({'topic', 'tool', 'pattern', 'decision', 'person', 'project'})
 
 
+def utc_now() -> str:
+    """Return current UTC time as ISO 8601 string."""
+    return datetime.now(timezone.utc).isoformat()
+
+
 def find_db_path(start: Optional[Path] = None) -> Path:
     """Walk up from start (default: cwd) looking for .memory-config. Return concepts.db path."""
     current = (start or Path.cwd()).resolve()
@@ -124,6 +130,7 @@ def init_db(db_path: Path) -> sqlite3.Connection:
     """Create schema and return connection."""
     conn = connect(db_path)
     conn.executescript(SCHEMA_SQL)
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
