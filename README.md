@@ -1,134 +1,163 @@
 # Cortex
 
-Claude Code's built-in auto-memory dumps everything into one flat file. After a few weeks, it's cluttered with stale entries, duplicates, and noise that actively degrades context quality. Cortex replaces that with structured memory you control.
+Your AI starts every conversation from zero. Cortex gives it memory that grows from your actual work.
 
-Two skills and a CLI. Run them manually when you want. No background processes, no magic.
+Two skills and a CLI. No background processes, no magic.
 
-## Why
+## The problem
 
-Claude Code remembers things, but not well. Auto-memory entries pile up without organization, go stale without review, and live in a single file with no routing logic. The result: your agent's context gets worse over time, not better.
+Claude Code's auto-memory dumps everything into one flat file. After a few weeks it's cluttered with stale entries, duplicates, and noise. Your agent's context gets worse over time, not better.
 
-Cortex fixes this with two slash commands:
+## What cortex does
 
-- **`/save`** routes session learnings to the right file instead of dumping everything in one place
-- **`/dream`** reviews what's accumulated and surfaces what needs attention
+**`/save`** captures session learnings and routes them to the right place. **`/dream`** reviews what's accumulated and surfaces patterns you'd miss. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
 
 ## Install
 
 ```bash
 git clone https://github.com/vednikolic/cortex.git
 cd cortex
-./install.sh
+bash install.sh
 ```
 
-The installer copies both skills into your workspace's `.claude/skills/` directory and optionally creates a `.memory-config` file to customize paths.
+The installer copies skills into your workspace, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Python 3.10+ (stdlib only, no pip dependencies).
 
-## Usage
-
-### /save
-
-Run at the end of a session or after completing meaningful work. `/save` reads the conversation, extracts what's worth keeping, and routes each entry to one of four destinations:
-
-| Destination | What goes there | Example |
-|---|---|---|
-| **MEMORY.md** | Cross-project knowledge, environment facts, reusable patterns | "Homebrew Python is at /opt/homebrew/bin/python3.12" |
-| **Project CLAUDE.md** | Architecture decisions, implementation state, project-specific context | "Auth uses JWT with 24h expiry, refresh tokens in httpOnly cookies" |
-| **Learnings file** | Working style, collaboration preferences, personal process insights | "Breaking PRs into <300 line chunks gets faster reviews" |
-| **Daily notes** | Work log with timestamps, task progress, carry-over items | "Finished API migration, auth endpoint still needs tests" |
-
-After routing, `/save` checks for patterns across your memory: duplicates, contradictions, entries that reinforce each other, and signals worth surfacing.
-
-```
-/save
-/save auth refactor decisions
-```
-
-### /dream
-
-Run periodically (weekly works well) to consolidate what `/save` has written. Five analysis passes:
-
-1. **Stale detection** flags entries not referenced in 7+ days
-2. **Friction patterns** escalates recurring friction (3+ mentions) to automation candidates
-3. **Cross-project signals** finds shared concepts, conflicting assumptions, and converging needs across projects
-4. **Promotion candidates** checks whether patterns are mature enough for root CLAUDE.md
-5. **Dormant ideas** surfaces things mentioned multiple times but never acted on
-
-Output appends to `dream-log.md`. Dream never modifies your memory files, never auto-promotes, never deletes. It surfaces findings. You decide what to act on.
-
-```
-/dream
-/dream my-project
-```
-
-## Phase 2: Knowledge Graph
-
-The `concepts` CLI builds a knowledge graph from your sessions. `/save` extracts concepts automatically; `/dream` uses graph data for higher-confidence cross-project signals.
-
-### Quick start
+## Quick start
 
 ```bash
-concepts init                    # Create concepts.db in workspace root
-# ... use /save normally, concepts are extracted automatically ...
-concepts graph                   # See your knowledge graph
-concepts dream-prep              # Generate graph data for /dream
+# 1. Install (one time)
+bash install.sh
+
+# 2. Initialize the knowledge graph
+concepts init
+
+# 3. Use normally -- /save and /dream handle the rest
 ```
 
-### Concepts CLI
+After `concepts init`, every `/save` automatically extracts concepts into your graph. No extra steps needed.
 
-| Command | Description |
-|---|---|
-| `concepts init` | Initialize concepts database |
-| `concepts upsert <name>` | Create or update a concept |
-| `concepts edge <from> <to> <relation>` | Create or strengthen an edge |
-| `concepts query <name>` | Query a concept and its relationships |
-| `concepts list` | List all concept names |
-| `concepts shared` | Show concepts appearing in 2+ projects |
-| `concepts stale` | Show concepts not recently referenced |
-| `concepts hot` | Show most active concepts |
-| `concepts graph` | Show graph summary |
-| `concepts stats` | Show statistics and weight distributions |
-| `concepts merge <source> <target>` | Merge source concept into target |
-| `concepts correct <name> <new_name>` | Rename a concept |
-| `concepts undo-last` | Revert most recent extraction |
-| `concepts verify` | Check database integrity |
-| `concepts log-extraction` | Log an extraction event |
-| `concepts dream-prep` | Generate or verify dream-context.json |
-
-All commands support `--db <path>` to override database location and `--json` for machine-readable output.
-
-### How it works
-
-1. `/save` runs Step 4b after each session: computes session weight, proposes concepts, creates edges, logs the extraction
-2. The graph accumulates over sessions. Canonicalization prevents duplicates (fuzzy matching, abbreviation handling)
-3. `concepts dream-prep` generates `dream-context.json` with shared concepts, hot concepts, stale concepts, and graph summary
-4. `/dream` reads this file for higher-confidence cross-project signal detection (Pass 3) and reports graph health (Pass 6)
-
-### Configuration
-
-Add project definitions to `.memory-config`:
+## What happens when you /save
 
 ```
-projects:
-  cortex: 1-projects/memory/cortex
-  website: 1-projects/ved-website
+> /save
+
+Session saved.
+
+Daily note (2-areas/me/daily/2026-03-24.md):
+  Work: Fixed auth race condition, drafted API migration plan
+  Tasks: 3 new, 2 carried over, 1 completed
+
+Project CLAUDE.md (my-api):
+  Decisions: Use connection pooling over per-request connections [settled]
+  Friction: Third time manually restarting dev server after config change
+
+Global MEMORY.md (47/200 lines):
+  Added: retry-with-backoff pattern (reusable across projects)
+
+Graph: 12 concepts, 8 edges, 2 projects.
+  Tip: Run 'concepts graph' to see your knowledge graph.
+
+Signals:
+  Opportunity: retry wrapper in my-api maps to flaky-endpoint friction in my-app
 ```
 
-## When to Use What
+`/save` routes each learning to one of four destinations:
 
-| Situation | Command |
-|---|---|
-| Wrapping up a coding session | `/save` |
-| Made a key architecture decision | `/save` |
-| Learned something about your tools or environment | `/save` |
-| Memory files feel cluttered or stale | `/dream` |
-| Starting a new week, want to clean house | `/dream` |
-| Wondering if patterns are emerging across projects | `/dream` |
+| Where | What | Example |
+|---|---|---|
+| **Daily notes** | Work log, tasks, carry-overs | "Finished API migration, auth endpoint still needs tests" |
+| **Project CLAUDE.md** | Decisions, state, friction | "Chose JWT with 24h expiry. Refresh tokens in httpOnly cookies" |
+| **MEMORY.md** | Cross-project patterns, environment | "Use per-project venvs, never system Python" |
+| **Learnings** | Working style, preferences | "Breaking PRs into <300 lines gets faster reviews" |
+
+Then it looks for signals: opportunities across projects, risk conflicts, converging needs.
+
+## What happens when you /dream
+
+Run weekly or after heavy sessions. Five analysis passes over your accumulated memory:
+
+```
+> /dream
+
+Stale (3):
+  "Redis caching layer" -- not referenced in 14 days
+  "Feature flag rollout plan" -- not referenced in 21 days
+
+Friction escalation:
+  "Manual dev server restart" -- 4 occurrences, automation candidate
+  Proposed fix: add watchdog to dev config
+
+Cross-project signals:
+  CONVERGENCE: my-api event logging + my-app telemetry + dashboard
+    cost tracking all need a shared event bus
+
+Promotion candidates:
+  "Always seed test data in fixtures, never in test bodies"
+  -- seen 3 times, mature enough for CLAUDE.md rule
+```
+
+`/dream` never modifies your files. It surfaces findings. You decide what to act on.
+
+## Knowledge graph
+
+The `concepts` CLI tracks what you work with across sessions. `/save` populates it automatically. You rarely need to touch it directly, but when you do:
+
+```bash
+# See what's in your graph
+concepts graph
+# Concepts: 24
+# Edges: 18 (avg 0.75/concept)
+# Projects: 3
+# Confidence: {'settled': 8, 'established': 10, 'tentative': 6}
+
+# Find cross-project concepts
+concepts shared
+# authentication (tool) - 3 projects: my-api, my-app, admin-dashboard
+# retry-pattern (pattern) - 2 projects: my-api, my-app
+
+# What's trending
+concepts hot --limit 5
+# postgresql (tool) - sources: 12, edges: 6
+# authentication (tool) - sources: 8, edges: 4
+
+# Query a specific concept
+concepts query postgresql
+# postgresql (tool, settled)
+#   Aliases: postgres, pg
+#   Sources: 12 | First: 2026-01-15 | Last: 2026-03-24
+#   Edges (4):
+#     -> authentication [related-to] (strength=3)
+#     -> connection-pooling [enables] (strength=2)
+#     -> my-api [related-to] (strength=5)
+
+# Fix a mistake
+concepts correct "postgress" "postgresql"
+concepts undo-last
+concepts merge "js" "javascript"
+```
+
+### How the graph grows
+
+1. You work normally and run `/save`
+2. `/save` computes a session weight (1-5) based on decisions, concepts, and friction detected
+3. Heavier sessions extract more concepts (up to 8). Light sessions extract fewer (up to 3)
+4. Canonicalization prevents duplicates: "k8s" matches "kubernetes", "pytohn" matches "python"
+5. Over time, the graph reveals which concepts connect your projects, which are going stale, and where patterns repeat
+
+### Preparing graph data for /dream
+
+```bash
+concepts dream-prep              # Generate dream-context.json
+concepts dream-prep --verify     # Check if data is fresh
+```
+
+Run `dream-prep` before `/dream` to give it structured graph data. Without it, `/dream` still works but relies on text matching instead of graph queries.
 
 ## Configuration
 
-Create `.memory-config` in your workspace root to map memory locations to your directory structure:
+Create `.memory-config` in your workspace root:
 
 ```
 daily_dir: 2-areas/me/daily
@@ -142,61 +171,42 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 
 ## Testing
 
-### Unit tests
-
 ```bash
-cd cortex
-python3.12 -m pytest tests/ -v
+python3 -m venv .venv && source .venv/bin/activate
+pip install pytest
+python -m pytest tests/ -v    # 66 unit tests
 ```
 
-### LLM evals
+LLM evals (requires Claude Code):
 
 ```bash
 cd evals
-python3 eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json --verbose
-python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_evals.json --verbose
 python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
 python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_graph_evals.json --verbose
 ```
 
-Each eval is a yes/no question scored by an LLM judge via `claude -p`. Use `--output json` for machine-readable results.
+## CLI reference
 
-## Project Structure
+| Command | What it does |
+|---|---|
+| `concepts init` | Create concepts.db in workspace root |
+| `concepts upsert <name>` | Create or update a concept |
+| `concepts edge <from> <to> <relation>` | Create or strengthen a relationship |
+| `concepts query <name>` | Show a concept with its edges and sources |
+| `concepts list` | List all concepts |
+| `concepts shared` | Concepts appearing in 2+ projects |
+| `concepts stale` | Concepts not referenced recently |
+| `concepts hot` | Most active concepts |
+| `concepts graph` | Graph summary |
+| `concepts stats --weights` | Weight distributions across extractions |
+| `concepts merge <source> <target>` | Merge two concepts |
+| `concepts correct <old> <new>` | Rename a concept |
+| `concepts undo-last` | Revert the last extraction |
+| `concepts verify` | Database integrity check |
+| `concepts dream-prep` | Generate dream-context.json |
 
-```
-cortex/
-├── .claude/skills/
-│   ├── save/SKILL.md            # /save skill (with Step 4b extraction)
-│   └── dream/SKILL.md           # /dream skill (with graph integration)
-├── cortex_lib/                  # Python library (stdlib-only)
-│   ├── __init__.py
-│   ├── db.py                    # Schema, connection, verify
-│   ├── canon.py                 # Two-tier canonicalization
-│   ├── ops.py                   # CRUD operations
-│   ├── weight.py                # Session weight computation
-│   ├── analysis.py              # Graph analysis queries
-│   ├── correction.py            # Correct, undo-last, merge
-│   ├── dream_prep.py            # Generate dream-context.json
-│   └── cli.py                   # argparse CLI
-├── concepts                     # CLI entry point
-├── abbreviations.json           # ~40 seeded abbreviation pairs
-├── dream-prep.sh                # Bash wrapper for dream_prep.py
-├── tests/                       # pytest suite
-├── evals/                       # LLM eval suites
-│   ├── eval.py                  # LLM judge harness
-│   ├── save_evals.json          # /save evals
-│   ├── dream_evals.json         # /dream evals
-│   ├── extraction_evals.json    # Step 4b extraction evals
-│   └── dream_graph_evals.json   # Dream graph integration evals
-├── install.sh                   # Installs skills + CLI
-├── .memory-config.example       # Path configuration template
-└── LICENSE
-```
-
-## Author
-
-Ved Nikolic ([vednikolic](https://github.com/vednikolic))
+All commands support `--db <path>` and `--json`.
 
 ## License
 
-MIT
+MIT. By [Ved Nikolic](https://github.com/vednikolic).
