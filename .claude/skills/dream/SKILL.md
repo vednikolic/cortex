@@ -95,7 +95,7 @@ Before running analysis passes, check for `dream-context.json` in the workspace 
 
 1. **File exists:** Validate freshness by running:
    ```bash
-   concepts dream-prep --verify
+   ~/.cortex/concepts dream-prep --verify
    ```
    - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
    - Exit code 1 (prints "stale: ..."): warn `"Graph data stale. Run 'concepts dream-prep' for fresh data."` Continue without graph data

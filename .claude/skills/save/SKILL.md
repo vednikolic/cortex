@@ -207,7 +207,7 @@ The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to
 **2. Query existing vocabulary:**
 
 ```bash
-concepts list --json
+~/.cortex/concepts list --json
 ```
 
 This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `concepts graph --json` to get edge and project counts for context.
@@ -232,12 +232,12 @@ Determine the project name from the working directory or `.memory-config` `proje
 
 For each proposed concept:
 ```bash
-concepts upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
+~/.cortex/concepts upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
 ```
 
 For each relationship:
 ```bash
-concepts edge "$from" "$to" "$relation" --session "$session_hash"
+~/.cortex/concepts edge "$from" "$to" "$relation" --session "$session_hash"
 ```
 
 Concepts that do not meet quality threshold (too generic, already fully captured, ephemeral) are counted as rejected but their names are NOT logged. Only the rejected count is stored.
@@ -247,7 +247,7 @@ Concepts that do not meet quality threshold (too generic, already fully captured
 After all upserts and edges are created, log the extraction event. This is critical for undo-last support and Phase 5 training data.
 
 ```bash
-concepts log-extraction --session "$session_hash" \
+~/.cortex/concepts log-extraction --session "$session_hash" \
   --proposed '["concept1", "concept2"]' \
   --created '["concept1"]' \
   --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' \
