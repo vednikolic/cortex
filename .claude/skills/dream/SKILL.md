@@ -89,7 +89,7 @@ Do not read full session transcripts. Too expensive and too noisy. The daily not
 
 ---
 
-## Graph pre-check (Phase 2)
+## Graph pre-check (requires concepts CLI)
 
 Before running analysis passes, check for `dream-context.json` in the workspace root:
 
@@ -100,7 +100,7 @@ Before running analysis passes, check for `dream-context.json` in the workspace 
    - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
    - Exit code 1 (prints "stale: ..."): warn `"Graph data stale. Run 'concepts dream-prep' for fresh data."` Continue without graph data
    - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale
-2. **File does not exist:** Continue with Phase 1 behavior (no graph data). This is expected before the first /save with cortex installed
+2. **File does not exist:** Continue without graph data. This is expected before the first /save with cortex installed
 
 When graph data is available, the variable `$GRAPH_DATA` refers to the parsed dream-context.json contents.
 
@@ -182,13 +182,13 @@ Examples of what this catches:
 5. If a stated goal from learnings.md has zero Work Log entries in the last 14 days: flag as "stagnant goal".
 6. If an interest or growth area from learnings.md connects to an active project (appears in a project CLAUDE.md): flag as "connection opportunity" with the project name.
 
-### Pass 6: Graph health (Phase 2)
+### Pass 6: Graph health (requires concepts CLI)
 
 **Input:** `$GRAPH_DATA` (if available). Skip this pass if no graph data.
 **Output:** A graph health section in the dream-log entry.
 
 1. Report graph summary: N concepts, M edges, K projects, N normalization rules
-2. Flag any Phase 2 gate metrics below threshold:
+2. Flag any graph maturity metrics below threshold:
    - Fewer than 10 concepts
    - Fewer than 2 projects
    - No edges with strength >= 3
@@ -231,7 +231,7 @@ Append to `$DREAM_LOG`:
 
 ### Graph health
 - Graph: N concepts, M edges, K projects
-- Gate progress: [which Phase 2 gate criteria are met / not met]
+- Maturity: [which graph health criteria are met / not met]
 - Mature signals: [concepts with strength >= 3 edges]
 ```
 

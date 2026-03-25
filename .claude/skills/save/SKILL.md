@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: [optional focus area]
 ---
 
-# /save v2 -- Save Session to Memory
+# /save -- Save Session to Memory
 
 Capture what happened this session and persist it to the right place. Then look for signals -- patterns, friction, emerging connections -- that should influence future sessions.
 
@@ -188,7 +188,7 @@ Surface detected signals in Step 7 under `Signals`.
 ### Step 4b: Concept extraction (Phase 2, requires concepts CLI)
 
 **Skip this step entirely if:**
-- The `--sensitive` flag was provided (req 2.8)
+- The `--sensitive` flag was provided
 - `~/.cortex/concepts` does not exist (cortex not installed)
 - The session had no meaningful content (pure Q&A with no decisions, tools, or patterns)
 
@@ -246,7 +246,7 @@ Concepts that do not meet quality threshold (too generic, already fully captured
 
 **5. Log the extraction:**
 
-After all upserts and edges are created, log the extraction event. This is critical for undo-last support and Phase 5 training data.
+After all upserts and edges are created, log the extraction event. This is critical for undo-last support and future analysis.
 
 ```bash
 ~/.cortex/concepts log-extraction --session "$session_hash" \
@@ -414,7 +414,6 @@ Patterns:
   Stale flags: [entries not referenced in 10+ sessions]
   Automation candidates: [friction appearing 2+ times]
 
-[If MEMORY.md over 150 lines]: Consider running /si:review to free space.
 ```
 
 ---
