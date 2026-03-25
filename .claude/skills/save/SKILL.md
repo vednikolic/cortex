@@ -3,7 +3,7 @@ name: save
 description: "Save session learnings to auto-memory. Summarizes what was done, checks for recurring patterns, detects friction and emerging signals, and updates MEMORY.md, project CLAUDE.md, learnings.md, and the daily note. Run at the end of a session or after completing meaningful work."
 disable-model-invocation: true
 argument-hint: [optional focus area]
-allowed-tools: Bash(~/.cortex/concepts *)
+allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(python3 -c *), Bash(wc -l *), Bash(date *)
 ---
 
 # /save -- Save Session to Memory
