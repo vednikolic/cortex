@@ -185,7 +185,7 @@ Surface detected signals in Step 7 under `Signals`.
 
 ---
 
-### Step 4b: Concept extraction (Phase 2, requires concepts CLI)
+### Step 4b: Concept extraction (requires concepts CLI)
 
 **Skip this step entirely if:**
 - The `--sensitive` flag was provided
