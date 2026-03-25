@@ -209,10 +209,10 @@ The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to
 **2. Query existing vocabulary:**
 
 ```bash
-~/.cortex/concepts list --json
+~/.cortex/concepts --json list
 ```
 
-This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `concepts graph --json` to get edge and project counts for context.
+This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --json graph` to get edge and project counts for context.
 
 **3. Propose concepts:**
 
