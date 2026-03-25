@@ -15,28 +15,21 @@ Claude Code's auto-memory dumps everything into one flat file. After a few weeks
 ## Install
 
 ```bash
+# Clone anywhere
 git clone https://github.com/vednikolic/cortex.git
+
+# Run the installer -- it will ask for your workspace path
 cd cortex
 bash install.sh
 ```
 
-The installer copies skills into your workspace, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save` and `/dream` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
 
 Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Python 3.10+ (stdlib only, no pip dependencies).
 
 ## Quick start
 
-```bash
-# 1. Install (one time)
-bash install.sh
-
-# 2. Initialize the knowledge graph
-concepts init
-
-# 3. Use normally -- /save and /dream handle the rest
-```
-
-After `concepts init`, every `/save` automatically extracts concepts into your graph. No extra steps needed.
+After install, start a Claude Code session in your workspace and run `/save` at the end. That's it. The knowledge graph initializes automatically on first use.
 
 ## What happens when you /save
 

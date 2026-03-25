@@ -189,8 +189,10 @@ Surface detected signals in Step 7 under `Signals`.
 
 **Skip this step entirely if:**
 - The `--sensitive` flag was provided (req 2.8)
-- `concepts.db` does not exist in the workspace root (user has not run `concepts init`)
+- `~/.cortex/concepts` does not exist (cortex not installed)
 - The session had no meaningful content (pure Q&A with no decisions, tools, or patterns)
+
+**Auto-init:** If `~/.cortex/concepts` exists but `concepts.db` does not exist in the workspace root, run `~/.cortex/concepts init` to create it. This is the normal first-run path.
 
 **1. Compute session weight:**
 
