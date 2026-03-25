@@ -229,36 +229,38 @@ For each concept, determine:
 
 **4. Execute extraction:**
 
-Compute a session hash: `hashlib.md5((session_summary + ISO_timestamp).encode()).hexdigest()[:16]`
+Compute a session hash by generating an MD5 hex digest of (session_summary + ISO_timestamp), truncated to 16 characters. Use a single standalone Bash call:
+```bash
+python3 -c "import hashlib; print(hashlib.md5(('summary here 2026-03-24T20:00:00').encode()).hexdigest()[:16])"
+```
 
 Determine the project name from the working directory or `.memory-config` `projects:` section.
 
-For each proposed concept:
+**IMPORTANT: Make each CLI call as a separate Bash invocation. Do NOT chain commands with `&&` or use `$()` substitution, as compound commands trigger permission prompts that break the zero-approval flow.**
+
+For each proposed concept (one Bash call each):
 ```bash
 ~/.cortex/concepts upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
 ```
 
-For each relationship:
+For each relationship (one Bash call each):
 ```bash
 ~/.cortex/concepts edge "$from" "$to" "$relation" --session "$session_hash"
 ```
+
+Run independent upserts and edges in parallel where possible.
 
 Concepts that do not meet quality threshold (too generic, already fully captured, ephemeral) are counted as rejected but their names are NOT logged. Only the rejected count is stored.
 
 **5. Log the extraction:**
 
-After all upserts and edges are created, log the extraction event. This is critical for undo-last support and future analysis.
+After all upserts and edges are created, log the extraction event as a single Bash call. This is critical for undo-last support and future analysis.
 
 ```bash
-~/.cortex/concepts log-extraction --session "$session_hash" \
-  --proposed '["concept1", "concept2"]' \
-  --created '["concept1"]' \
-  --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' \
-  --rejected 1 \
-  --weight $weight
+~/.cortex/concepts log-extraction --session "$session_hash" --proposed '["concept1", "concept2"]' --created '["concept1"]' --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' --rejected 1 --weight $weight
 ```
 
-Alternatively, if calling from Python within the /save skill context, use the `log_extraction` function directly. The key fields are:
+The key fields are:
 - `session_hash`: unique per extraction (includes ISO timestamp)
 - `concepts_proposed`: all concepts considered (JSON array of names)
 - `created_concepts`: concepts actually created or updated (JSON array)
