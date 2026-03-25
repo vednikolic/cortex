@@ -65,7 +65,7 @@ fi
 
 echo ""
 
-# Phase 2: Install concepts CLI
+# Install concepts CLI
 CORTEX_HOME="$HOME/.cortex"
 echo "Installing concepts CLI to $CORTEX_HOME..."
 mkdir -p "$CORTEX_HOME"

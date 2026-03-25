@@ -1,10 +1,10 @@
 [
   {"name": "dream_reads_context_json", "prompt": "Does /dream read dream-context.json when available in the workspace root?", "category": "integration", "weight": 1.5},
   {"name": "dream_validates_content_hash", "prompt": "Does /dream validate the content_hash in dream-context.json against the current concepts.db mtime before using the data?", "category": "freshness", "weight": 1.5},
-  {"name": "dream_warns_stale_hash", "prompt": "Does /dream warn when content_hash is stale and continue with Phase 1 behavior instead of using stale graph data?", "category": "freshness", "weight": 1.0},
+  {"name": "dream_warns_stale_hash", "prompt": "Does /dream warn when content_hash is stale and continue without graph data instead of using stale data?", "category": "freshness", "weight": 1.0},
   {"name": "dream_uses_shared_concepts", "prompt": "Does /dream use shared_concepts data from dream-context.json for cross-project signal detection in Pass 3?", "category": "analysis", "weight": 1.5},
   {"name": "dream_uses_hot_concepts", "prompt": "Does /dream reference hot_concepts for concept velocity or trending pattern detection?", "category": "analysis", "weight": 1.0},
   {"name": "dream_reports_graph_health", "prompt": "Does /dream include a graph health section in its output reporting concept count, edge count, project count, and gate progress?", "category": "reporting", "weight": 1.0},
-  {"name": "dream_no_context_fallback", "prompt": "Without dream-context.json present, does /dream fall back to Phase 1 behavior without errors?", "category": "robustness", "weight": 1.5},
+  {"name": "dream_no_context_fallback", "prompt": "Without dream-context.json present, does /dream fall back to text-only analysis without errors?", "category": "robustness", "weight": 1.5},
   {"name": "dream_trust_calibration", "prompt": "Does /dream respect trust calibration by only surfacing signals backed by edge strength >= 2 or confidence established or higher?", "category": "trust", "weight": 1.0}
 ]

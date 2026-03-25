@@ -5,7 +5,7 @@ __pycache__/
 .worktrees/
 .venv/
 
-# Phase 2: concepts graph
+# Concepts graph (local, auto-created by /save)
 concepts.db
 concepts.db-wal
 concepts.db-shm

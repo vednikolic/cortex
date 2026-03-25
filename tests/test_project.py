@@ -1,4 +1,4 @@
-"""Project definition tests (req 2.22, 2.T6)."""
+"""Project definition tests."""
 
 from cortex_lib.ops import upsert_concept
 from cortex_lib.analysis import shared_concepts

@@ -78,7 +78,7 @@ def graph_summary(conn: sqlite3.Connection) -> dict:
 
 
 def weight_stats(conn: sqlite3.Connection) -> dict:
-    """Extraction weight distribution for revision protocol (req 2.5)."""
+    """Extraction weight distribution for revision protocol."""
     rows = conn.execute("""
         SELECT weight, COUNT(*) as cnt,
                AVG(json_array_length(created_concepts)) as avg_concepts,

@@ -10,10 +10,10 @@ project_root: 1-projects
 # Workspace isolation (separate concepts.db per workspace)
 workspace: personal
 
-# Phase 2: concepts graph
+# Concepts graph database path (default: concepts.db in workspace root)
 # db_path: concepts.db
 
-# Project definitions (Phase 2)
+# Project definitions
 # Maps project names to directory paths. Default: each unique parent directory = one project.
 # Uncomment and customize for non-directory-based projects:
 # projects:

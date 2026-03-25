@@ -13,6 +13,6 @@
   {"name": "extraction_session_hash_unique", "prompt": "Does the session_hash include an ISO timestamp to prevent collisions on formulaic summaries?", "category": "extraction", "weight": 0.5},
   {"name": "extraction_project_field", "prompt": "Is the project field populated on concept_sources using the formal project definition from .memory-config or working directory?", "category": "extraction", "weight": 1.0},
   {"name": "extraction_graph_warming_ux", "prompt": "After extraction, does /save report graph status (N concepts, M edges, K projects) and surface invitations at 5-concept and gate thresholds?", "category": "ux", "weight": 0.5},
-  {"name": "extraction_no_db_graceful", "prompt": "If concepts.db does not exist, does Step 4b skip gracefully without errors or warnings that would confuse Phase 1 users?", "category": "robustness", "weight": 1.0},
+  {"name": "extraction_no_db_graceful", "prompt": "If concepts.db does not exist, does Step 4b skip gracefully without errors or warnings?", "category": "robustness", "weight": 1.0},
   {"name": "extraction_preserves_existing_flow", "prompt": "Does the addition of Step 4b preserve all existing /save steps (1 through 9) without breaking any of them?", "category": "integration", "weight": 1.5}
 ]

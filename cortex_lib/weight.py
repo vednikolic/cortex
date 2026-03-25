@@ -1,11 +1,10 @@
 """Session weight computation.
 
-Deterministic formula from cortex-requirements.md req 2.5:
-weight = 1 + (token_count>5000) + (concepts>=2) + (decisions>=1) + (friction>=1)
+Formula: weight = 1 + (token_count>5000) + (concepts>=2) + (decisions>=1) + (friction>=1)
 Capped at 5.
 
 After 20 extraction_log entries, `concepts stats --weights` surfaces threshold
-distributions so the user can adjust. (Revision protocol, req 2.5.)
+distributions so the user can adjust.
 """
 
 
