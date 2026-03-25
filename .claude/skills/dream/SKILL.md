@@ -238,9 +238,9 @@ Append to `$DREAM_LOG`:
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
 
-After writing, update the timestamp:
+After writing, update the timestamp. Use a literal path (not `$HOME`) to avoid shell expansion permission prompts:
 ```bash
-date +%s > "$HOME/.claude/dream-last-run"
+date +%s > ~/.claude/dream-last-run
 ```
 
 ---
