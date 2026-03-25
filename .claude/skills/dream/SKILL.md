@@ -3,7 +3,7 @@ name: dream
 description: "Background memory consolidation. Reviews MEMORY.md, project CLAUDE.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /dream. Writes a consolidation report to the configured dream log path. Never blocks. Never auto-promotes."
 disable-model-invocation: true
 argument-hint: [optional focus area or project scope]
-allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(date *)
+allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(python3 -c *)
 ---
 
 # /dream -- Background Memory Consolidation
@@ -238,9 +238,9 @@ Append to `$DREAM_LOG`:
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
 
-After writing, update the timestamp. Use a literal path (not `$HOME`) to avoid shell expansion permission prompts:
+After writing, update the timestamp. Use python3 (covered by allowed-tools) to avoid shell redirect permission prompts:
 ```bash
-date +%s > ~/.claude/dream-last-run
+python3 -c "import time, pathlib; pathlib.Path.home().joinpath('.claude','dream-last-run').write_text(str(int(time.time())))"
 ```
 
 ---
