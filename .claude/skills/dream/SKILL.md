@@ -99,8 +99,8 @@ Before running analysis passes, check for `dream-context.json` in the workspace 
    ~/.cortex/concepts dream-prep --verify
    ```
    - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
-   - Exit code 1 (prints "stale: ..."): warn `"Graph data stale. Run 'concepts dream-prep' for fresh data."` Continue without graph data
-   - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale
+   - Exit code 1 (prints "stale: ..."): auto-regenerate by running `~/.cortex/concepts dream-prep`. If regeneration succeeds, use the fresh data. If it fails, continue without graph data
+   - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale and continue without graph data
 2. **File does not exist:** Continue without graph data. This is expected before the first /save with cortex installed
 
 When graph data is available, the variable `$GRAPH_DATA` refers to the parsed dream-context.json contents.
