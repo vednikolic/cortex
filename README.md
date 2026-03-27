@@ -1,8 +1,32 @@
 # Cortex
 
+<div align="center">
+
+<img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+<img src="https://img.shields.io/badge/stdlib%20only-no%20pip-10B981?style=for-the-badge" />
+<img src="https://img.shields.io/badge/skills-save%20%2B%20dream-8B5CF6?style=for-the-badge" />
+<img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" />
+
+</div>
+
+<br />
+
 Your AI starts every conversation from zero. Cortex gives it memory that grows from your actual work.
 
 Two skills and a CLI. No background processes, no magic.
+
+```
+  SESSION                    /save                      KNOWLEDGE GRAPH              /dream
+  -------                    -----                      ---------------              ------
+
+  +------------+      +----------------+      +--------------------+      +-------------------+
+  | Decisions  |      | Daily notes    |      |   postgresql       |      | Stale: 3 entries  |
+  | Patterns   | ---> | Project context| ---> |     / | \         | ---> | Friction: 2 ready |
+  | Friction   |      | MEMORY.md      |      |  auth  pool  api  |      | Signals: 1 convg  |
+  | Concepts   |      | Learnings      |      |     \ | /         |      | Promote: 1 cand   |
+  +------------+      +----------------+      |    my-api         |      +-------------------+
+                        4 destinations         +--------------------+       5 analysis passes
+```
 
 ## The problem
 
