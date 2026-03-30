@@ -163,6 +163,33 @@ concepts merge "js" "javascript"
 4. Canonicalization prevents duplicates: "k8s" matches "kubernetes", "pytohn" matches "python"
 5. Over time, the graph reveals which concepts connect your projects, which are going stale, and where patterns repeat
 
+### What the graph looks like
+
+```mermaid
+graph LR
+    classDef tool fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef topic fill:#10b981,stroke:#059669,color:#fff
+    classDef pattern fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef project fill:#8b5cf6,stroke:#7c3aed,color:#fff
+
+    pg["postgresql<br>tool · settled"]:::tool
+    auth["authentication<br>topic · established"]:::topic
+    jwt["jwt-tokens<br>pattern · tentative"]:::pattern
+    pool["connection-pooling<br>pattern · established"]:::pattern
+    retry["retry-pattern<br>pattern · established"]:::pattern
+    api["my-api<br>project"]:::project
+    app["my-app<br>project"]:::project
+
+    pg -->|"enables (2)"| pool
+    pg -->|"related-to (5)"| api
+    auth -->|"enables (3)"| jwt
+    api -->|"depends-on (4)"| auth
+    retry -->|"related-to (2)"| api
+    retry -->|"related-to (2)"| app
+```
+
+Each node is a **concept** with a kind and confidence level. Edges carry a **relation type** and **strength** that increments each time the relationship is reinforced across sessions. `retry-pattern` appearing in both `my-api` and `my-app` is the kind of cross-project signal `/dream` surfaces.
+
 ### Preparing graph data for /dream
 
 ```bash
@@ -223,6 +250,32 @@ python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_graph_evals.json 
 | `concepts dream-prep` | Generate dream-context.json |
 
 All commands support `--db <path>` and `--json`.
+
+## What's next
+
+```mermaid
+flowchart TB
+    session["Claude Code session"]
+    session -->|"/save"| db[("concepts.db")]
+    session -->|"route learnings"| files["Workspace files"]
+    db -->|"/dream"| signals["Signals"]
+
+    signals -.->|"/review"| triage["Promote · Dismiss · Defer"]
+    triage -.-> db
+    triage -.-> synthesis["Weekly synthesis"]
+
+    db -.-> explorer["Graph explorer"]
+    db -.-> api["HTTP API :9473"]
+    api -.-> agents["Claude Code · Cursor<br>Windsurf · Gemini"]
+    db -.-> profile["Gravity scores<br>Cortex profile"]
+```
+
+Solid lines are live today. Dashed lines are planned.
+
+- **Review and synthesis**: `/review` triages `/dream` signals. Promote confident concepts, dismiss false edges, defer uncertain patterns. Weekly synthesis tracks how the graph evolves
+- **Graph explorer**: Visualize and traverse the knowledge graph
+- **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
+- **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare
 
 ## License
 
