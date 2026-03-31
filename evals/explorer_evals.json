@@ -1,0 +1,90 @@
+{
+  "name": "cortex-explorer-evals",
+  "version": "1.0",
+  "evals": [
+    {
+      "id": "explorer-launches",
+      "prompt": "Run `concepts explore --no-browser` and verify it starts an HTTP server",
+      "expected": "Server starts on port 9474 (or custom port) and prints URL",
+      "judge": "output_contains",
+      "match": "Cortex explorer running at"
+    },
+    {
+      "id": "explorer-graph-endpoint",
+      "prompt": "With cortex installed and concepts.db populated, fetch http://127.0.0.1:9474/api/graph",
+      "expected": "JSON response with concepts array, edges array, and summary object",
+      "judge": "llm",
+      "criteria": "Response is valid JSON containing 'concepts' (array), 'edges' (array), and 'summary' (object with concept/edge counts)"
+    },
+    {
+      "id": "explorer-d3-renders",
+      "prompt": "Open the graph explorer at http://127.0.0.1:9474/ and describe what you see",
+      "expected": "D3 force-directed graph with colored nodes, edges, labels, and a control panel",
+      "judge": "llm",
+      "criteria": "HTML page loads D3.js, renders SVG with circle elements (nodes) and line elements (edges), has a search input and filter checkboxes"
+    },
+    {
+      "id": "explorer-search-filters",
+      "prompt": "In the explorer, type a concept name in the search box",
+      "expected": "Only matching concepts remain visible, others are hidden",
+      "judge": "llm",
+      "criteria": "Search input filters visible nodes by name substring match"
+    },
+    {
+      "id": "explorer-temporal-replay",
+      "prompt": "In the explorer, drag the time slider to the left",
+      "expected": "Graph shows fewer concepts and edges (only those that existed at that point in time)",
+      "judge": "llm",
+      "criteria": "Time slider filters graph by first_seen date. Moving left hides newer concepts. Play button animates through time"
+    },
+    {
+      "id": "explorer-click-highlight",
+      "prompt": "Click a concept node in the explorer",
+      "expected": "The clicked node and its neighbors are highlighted, others are dimmed",
+      "judge": "llm",
+      "criteria": "Clicking a node increases opacity of the node and connected neighbors, dims all others"
+    },
+    {
+      "id": "explorer-correction-rename",
+      "prompt": "Click a concept in the explorer and use the Rename button",
+      "expected": "Modal appears with text input, submitting renames the concept and refreshes the graph",
+      "judge": "llm",
+      "criteria": "Rename modal appears, accepts new name, POSTs to /api/correct, page reloads with updated name"
+    },
+    {
+      "id": "explorer-correction-flag",
+      "prompt": "Click a concept and use the Flag incorrect button",
+      "expected": "Concept is added to correction-queue.json for /review to surface",
+      "judge": "llm",
+      "criteria": "Flag action POSTs to /api/flag, creates or appends to correction-queue.json, shows confirmation"
+    },
+    {
+      "id": "explorer-clusters",
+      "prompt": "With 5+ connected concepts, check if cluster boundaries appear in the explorer",
+      "expected": "Connected components are outlined with semi-transparent colored hulls",
+      "judge": "llm",
+      "criteria": "Explorer fetches /api/clusters and renders convex hull overlays around connected components with 2+ members"
+    },
+    {
+      "id": "reflect-uses-cli",
+      "prompt": "Run /reflect and check how it accesses graph data",
+      "expected": "/reflect uses CLI queries (concepts --json shared, hot, stale, graph) instead of reflect-context.json",
+      "judge": "llm",
+      "criteria": "The /reflect skill does NOT reference reflect-context.json. It runs CLI commands directly for graph data"
+    },
+    {
+      "id": "co-occurs-detection",
+      "prompt": "With concepts A-B-C where A and C both connect to B and D, run concepts co-occurs A",
+      "expected": "Returns C as co-occurring with A, sharing neighbors B and D",
+      "judge": "llm",
+      "criteria": "co-occurs subcommand correctly identifies concepts sharing 2+ common neighbors and lists the shared neighbors"
+    },
+    {
+      "id": "hooks-install",
+      "prompt": "Run concepts hooks install and verify the result",
+      "expected": "Scripts written to ~/.claude/scripts/, hooks added to settings.json",
+      "judge": "llm",
+      "criteria": "Three scripts installed (review-check.sh, reflect-gate.sh, reflect-surface.sh). settings.json updated with SessionStart and Stop hooks"
+    }
+  ]
+}

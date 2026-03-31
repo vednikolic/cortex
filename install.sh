@@ -78,6 +78,10 @@ cp "$CORTEX_DIR/reflect-prep.sh" "$CORTEX_HOME/"
 chmod +x "$CORTEX_HOME/concepts"
 chmod +x "$CORTEX_HOME/reflect-prep.sh"
 
+# Install hook scripts
+echo "Installing hook scripts..."
+"$CORTEX_HOME/concepts" hooks install 2>/dev/null || true
+
 echo "Concepts CLI installed."
 
 # Check if ~/.cortex is in PATH
@@ -134,6 +138,16 @@ else
     test_failed=$((test_failed + 1))
 fi
 
+# Self-test: verify hook scripts
+for script in review-check.sh reflect-gate.sh reflect-surface.sh; do
+    if [ -f "$HOME/.claude/scripts/$script" ]; then
+        echo "  PASS: $script installed"
+        test_passed=$((test_passed + 1))
+    else
+        echo "  WARN: $script not found (run 'concepts hooks install' manually)"
+    fi
+done
+
 echo ""
 
 if [ "$test_failed" -eq 0 ]; then
@@ -144,6 +158,8 @@ if [ "$test_failed" -eq 0 ]; then
     echo "  /reflect           Run background memory consolidation"
     echo "  /review            Weekly signal triage and synthesis"
     echo "  concepts <cmd>     Manage the knowledge graph"
+    echo "  concepts explore    Open graph explorer in browser"
+    echo "  concepts hooks install  Install automated hooks"
     echo ""
     echo "To customize paths, edit .memory-config in your workspace root."
     echo "Without .memory-config, PARA defaults are used (2-areas/me/daily, etc.)."

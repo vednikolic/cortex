@@ -281,7 +281,7 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
-python -m pytest tests/ -v    # 92 unit tests
+python -m pytest tests/ -v    # 120 unit tests
 ```
 
 LLM evals (requires Claude Code):
@@ -318,6 +318,10 @@ python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --ve
 | `concepts confidence-check` | Show promotion-eligible concepts and optionally run decay |
 | `concepts export` | Export graph to portable JSON (Phase 4) |
 | `concepts import` | Import graph from portable JSON (Phase 4) |
+| `concepts velocity` | Concept creation velocity per week |
+| `concepts co-occurs <name>` | Find concepts sharing common neighbors |
+| `concepts explore` | Open graph explorer in browser |
+| `concepts hooks install` | Install automated review/reflect hooks |
 
 All commands support `--db <path>` and `--json`.
 
@@ -334,7 +338,7 @@ flowchart TB
     triage --> db
     triage --> synthesis["Weekly synthesis"]
 
-    db -.-> explorer["Graph explorer"]
+    db --> explorer["Graph explorer"]
     db -.-> api["HTTP API :9473"]
     api -.-> agents["Claude Code · Cursor<br>Windsurf · Gemini"]
     db -.-> profile["Gravity scores<br>Cortex profile"]
@@ -342,7 +346,8 @@ flowchart TB
 
 Solid lines are live today. Dashed lines are planned.
 
-- **Graph explorer**: Visualize and traverse the knowledge graph
+- **Graph explorer** (live): D3 force-directed visualization with search, filters, temporal replay, and correction affordances. Run `concepts explore` to open in browser
+- **Automated hooks** (live): SessionStart and Stop hooks surface review reminders and trigger reflect passes. Run `concepts hooks install` to enable
 - **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
 - **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare
 
