@@ -1,0 +1,62 @@
+[
+  {
+    "name": "review_reads_reflect_log",
+    "question": "Does the /review skill instruct reading the reflect log for unreviewed entries?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_presents_promotion_eligible",
+    "question": "Does /review present concepts eligible for promotion with reasons and recommendations?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_supports_three_actions",
+    "question": "Does /review support exactly three triage actions: promote, dismiss, and defer?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_runs_confidence_decay",
+    "question": "Does /review run confidence decay after triage?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_creates_weekly_summary",
+    "question": "Does /review create a weekly summary snapshot in concepts.db via the CLI?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_writes_synthesis_file",
+    "question": "Does /review write a synthesis markdown file to the weekly directory?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_synthesis_has_delta",
+    "question": "Does the weekly synthesis include delta comparisons to the previous week (concepts, edges, projects)?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_reports_stale_concepts",
+    "question": "Does /review surface stale concepts (unreferenced 14+ days) for awareness?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_uses_absolute_paths",
+    "question": "Does /review use ~/.cortex/concepts (absolute path) for CLI invocations?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_never_auto_promotes",
+    "question": "Does /review require user confirmation before promoting concepts (never auto-promotes)?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_carries_forward_deferred",
+    "question": "Does /review track deferred items in the synthesis for carry-forward to next week?",
+    "expected": "YES"
+  },
+  {
+    "name": "review_report_includes_graph_status",
+    "question": "Does the /review report include current graph status (concepts, edges, projects) and weekly delta?",
+    "expected": "YES"
+  }
+]
