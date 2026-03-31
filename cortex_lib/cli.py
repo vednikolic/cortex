@@ -471,6 +471,27 @@ def cmd_explore(args):
     return 0
 
 
+def cmd_hooks(args):
+    if args.action == "install":
+        from .hooks import install_hooks
+        result = install_hooks()
+        print("Cortex hooks installed:")
+        print(f"  Scripts: {', '.join(result['scripts_installed'])}")
+        print(f"  Location: {result['scripts_dir']}")
+        print(f"  Settings: {result['settings_path']}")
+    elif args.action == "status":
+        from .hooks import generate_hooks_config
+        scripts_dir = Path.home() / ".claude" / "scripts"
+        config = generate_hooks_config()
+        for event, hooks in config["hooks"].items():
+            for h in hooks:
+                script_name = h["command"].split("/")[-1]
+                installed = (scripts_dir / script_name).exists()
+                status = "installed" if installed else "missing"
+                print(f"  {event}: {script_name} [{status}]")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -589,6 +610,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--port', type=int, default=9474, help='Server port (default: 9474)')
     p.add_argument('--no-browser', action='store_true', help='Do not open browser')
     p.set_defaults(func=cmd_explore)
+
+    p = sub.add_parser('hooks', help='Install or check cortex hooks')
+    p.add_argument('action', choices=['install', 'status'],
+                   help='install: add hooks to settings.json; status: check installation')
+    p.set_defaults(func=cmd_hooks)
 
     p = sub.add_parser('export', help='Export graph to JSON')
     p.add_argument('--output', '-o', help='Output file path (default: stdout)')
