@@ -5,6 +5,7 @@
 daily_dir: 2-areas/me/daily
 learnings: 2-areas/me/learnings.md
 reflect_log: 2-areas/me/reflect-log.md
+weekly_dir: 2-areas/me/weekly
 project_root: 1-projects
 
 # Workspace isolation (separate concepts.db per workspace)

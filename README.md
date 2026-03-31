@@ -4,7 +4,7 @@
 
 <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
 <img src="https://img.shields.io/badge/stdlib%20only-no%20pip-10B981?style=for-the-badge" />
-<img src="https://img.shields.io/badge/skills-save%20%2B%20reflect-8B5CF6?style=for-the-badge" />
+<img src="https://img.shields.io/badge/skills-save%20%2B%20reflect%20%2B%20review-8B5CF6?style=for-the-badge" />
 <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" />
 
 </div>
@@ -13,7 +13,7 @@
 
 Your AI starts every conversation from zero. Cortex gives it memory that grows from your actual work.
 
-Two skills and a CLI. No background processes, no magic.
+Three skills and a CLI. No background processes, no magic.
 
 ## Where cortex fits
 
@@ -65,7 +65,7 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save` and `/reflect` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
 
 Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Python 3.10+ (stdlib only, no pip dependencies).
 
@@ -134,6 +134,35 @@ Promotion candidates:
 ```
 
 `/reflect` never modifies your files. It surfaces findings. You decide what to act on.
+
+## What happens when you /review
+
+Run weekly. Triages accumulated signals and generates a synthesis snapshot:
+
+```
+> /review
+
+Promotion eligible:
+  python (tentative -> established): 5 sources, 3 projects
+  Recommend: promote (high-confidence cross-project concept)
+
+Stale (2):
+  "redis-caching" -- not referenced in 18 days
+
+Review complete.
+
+Triage:
+  Promoted: 2 concepts
+  Dismissed: 1 edge
+  Deferred: 3 items
+
+Weekly synthesis written to 2-areas/me/weekly/2026-03-24.md
+
+Graph: 24 concepts, 18 edges, 3 projects
+  This week: +4 concepts, +3 edges
+```
+
+Over time, the weekly directory builds a record of how your knowledge evolves: which concepts strengthened, what got dismissed, where your projects converge.
 
 ## Knowledge graph
 
@@ -217,6 +246,21 @@ concepts reflect-prep --verify     # Check if data is fresh
 
 Run `reflect-prep` before `/reflect` to give it structured graph data. Without it, `/reflect` still works but relies on text matching instead of graph queries.
 
+### Multi-agent access
+
+Subagents spawned within a Claude Code session inherit filesystem access and can query the graph directly:
+
+```bash
+# Any subagent can read the graph
+~/.cortex/concepts query fastapi --json
+~/.cortex/concepts shared --json
+~/.cortex/concepts hot --limit 5 --json
+```
+
+All query commands return structured JSON with `--json`. Write operations (`upsert`, `edge`, `promote`, `dismiss`) should go through the main session to avoid concurrent write conflicts.
+
+For independent agents (Cursor alongside Claude Code), the Phase 4 HTTP API will serialize writes. Until then, treat the graph as read-many, write-one.
+
 ## Configuration
 
 Create `.memory-config` in your workspace root:
@@ -225,6 +269,7 @@ Create `.memory-config` in your workspace root:
 daily_dir: 2-areas/me/daily
 learnings: 2-areas/me/learnings.md
 reflect_log: 2-areas/me/reflect-log.md
+weekly_dir: 2-areas/me/weekly
 project_root: 1-projects
 workspace: personal
 ```
@@ -236,7 +281,7 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
-python -m pytest tests/ -v    # 66 unit tests
+python -m pytest tests/ -v    # 92 unit tests
 ```
 
 LLM evals (requires Claude Code):
@@ -245,6 +290,7 @@ LLM evals (requires Claude Code):
 cd evals
 python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
 python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_graph_evals.json --verbose
+python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --verbose
 ```
 
 ## CLI reference
@@ -266,6 +312,12 @@ python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_graph_evals.j
 | `concepts undo-last` | Revert the last extraction |
 | `concepts verify` | Database integrity check |
 | `concepts reflect-prep` | Generate reflect-context.json |
+| `concepts review-summary` | List or create weekly summary snapshots |
+| `concepts promote <name> <level>` | Promote a concept to a higher confidence level |
+| `concepts dismiss <edge_id>` | Dismiss a false or noisy edge |
+| `concepts confidence-check` | Show promotion-eligible concepts and optionally run decay |
+| `concepts export` | Export graph to portable JSON (Phase 4) |
+| `concepts import` | Import graph from portable JSON (Phase 4) |
 
 All commands support `--db <path>` and `--json`.
 
@@ -278,9 +330,9 @@ flowchart TB
     session -->|"route learnings"| files["Workspace files"]
     db -->|"/reflect"| signals["Signals"]
 
-    signals -.->|"/review"| triage["Promote · Dismiss · Defer"]
-    triage -.-> db
-    triage -.-> synthesis["Weekly synthesis"]
+    signals -->|"/review"| triage["Promote · Dismiss · Defer"]
+    triage --> db
+    triage --> synthesis["Weekly synthesis"]
 
     db -.-> explorer["Graph explorer"]
     db -.-> api["HTTP API :9473"]
@@ -290,7 +342,6 @@ flowchart TB
 
 Solid lines are live today. Dashed lines are planned.
 
-- **Review and synthesis**: `/review` triages `/reflect` signals. Promote confident concepts, dismiss false edges, defer uncertain patterns. Weekly synthesis tracks how the graph evolves
 - **Graph explorer**: Visualize and traverse the knowledge graph
 - **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
 - **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare

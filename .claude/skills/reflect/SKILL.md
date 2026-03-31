@@ -238,6 +238,12 @@ Append to `$REFLECT_LOG`:
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
 
+After writing, check if there are unreviewed signals (promotion-eligible concepts, stale entries, or unreviewed reflect-log findings). If so, append to the output:
+
+```
+[If unreviewed signals exist]: Run /review to triage N pending signals.
+```
+
 After writing, update the timestamp. Use python3 (covered by allowed-tools) to avoid shell redirect permission prompts:
 ```bash
 python3 -c "import time, pathlib; pathlib.Path.home().joinpath('.claude','reflect-last-run').write_text(str(int(time.time())))"

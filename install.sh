@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # cortex installer
-# Copies /save and /reflect skills into a workspace's .claude/skills/ directory.
+# Copies /save, /reflect, and /review skills into a workspace's .claude/skills/ directory.
 # Claude Code discovers skills from project-local .claude/skills/<name>/SKILL.md.
 # Global ~/.claude/skills/ does NOT support skill discovery (verified 2026-03-23).
 # Optionally creates .memory-config in the same workspace.
 
 CORTEX_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILLS=("save" "reflect")
+SKILLS=("save" "reflect" "review")
 
 echo "cortex installer"
 echo "================"
@@ -142,6 +142,7 @@ if [ "$test_failed" -eq 0 ]; then
     echo "Usage (in a Claude Code session started from $workspace_path):"
     echo "  /save              Save session learnings to memory"
     echo "  /reflect           Run background memory consolidation"
+    echo "  /review            Weekly signal triage and synthesis"
     echo "  concepts <cmd>     Manage the knowledge graph"
     echo ""
     echo "To customize paths, edit .memory-config in your workspace root."
