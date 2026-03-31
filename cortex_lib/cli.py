@@ -463,6 +463,14 @@ def cmd_co_occurs(args):
     return 0
 
 
+def cmd_explore(args):
+    from .explorer import start_explorer
+    db_path = Path(args.db) if args.db else None
+    start_explorer(db_path=db_path, port=args.port,
+                   open_browser=not args.no_browser)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -576,6 +584,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--min-shared', type=int, default=2,
                    help='Minimum shared neighbors (default: 2)')
     p.set_defaults(func=cmd_co_occurs)
+
+    p = sub.add_parser('explore', help='Open graph explorer in browser')
+    p.add_argument('--port', type=int, default=9474, help='Server port (default: 9474)')
+    p.add_argument('--no-browser', action='store_true', help='Do not open browser')
+    p.set_defaults(func=cmd_explore)
 
     p = sub.add_parser('export', help='Export graph to JSON')
     p.add_argument('--output', '-o', help='Output file path (default: stdout)')
