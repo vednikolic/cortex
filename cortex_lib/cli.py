@@ -14,6 +14,11 @@ from .analysis import (
     graph_summary, weight_stats,
 )
 from .correction import correct_concept, undo_last_extraction, merge_concepts
+from .review import (
+    create_weekly_summary, list_weekly_summaries, get_weekly_summary,
+    triage_signal, pending_signals, generate_synthesis,
+)
+from .confidence import promote_concept, check_promotion_eligibility, apply_confidence_decay
 
 
 def _connect(args):
@@ -301,6 +306,95 @@ def cmd_reflect_prep(args):
     return 0
 
 
+def cmd_review_summary(args):
+    conn = _connect(args)
+    try:
+        if args.create:
+            result = create_weekly_summary(conn, args.create)
+            if args.json:
+                print(json.dumps(result))
+            else:
+                print(f"Created summary for week of {result['week_start']}: "
+                      f"{result['concept_count']} concepts, {result['edge_count']} edges")
+        elif args.week:
+            s = get_weekly_summary(conn, args.week)
+            if not s:
+                print(f"No summary for week {args.week}")
+                return 1
+            if args.json:
+                print(json.dumps(dict(s), default=str))
+            else:
+                print(f"Week of {s['week_start']}: {s['concept_count']} concepts, "
+                      f"{s['edge_count']} edges, {s['project_count']} projects")
+                if s['summary']:
+                    print(f"\n{s['summary']}")
+        else:
+            summaries = list_weekly_summaries(conn)
+            if args.json:
+                print(json.dumps(summaries, default=str))
+            elif not summaries:
+                print("No weekly summaries yet. Use --create YYYY-MM-DD to create one.")
+            else:
+                for s in summaries:
+                    print(f"{s['week_start']}: {s['concept_count']} concepts, "
+                          f"{s['edge_count']} edges, {s['project_count']} projects")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_promote(args):
+    conn = _connect(args)
+    try:
+        result = promote_concept(conn, args.name, args.level)
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(f"Promoted '{result['name']}': {result['old_confidence']} -> {result['new_confidence']}")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_dismiss(args):
+    conn = _connect(args)
+    try:
+        result = triage_signal(conn, edge_id=args.edge_id, action="dismiss")
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(f"Dismissed edge #{result['edge_id']}")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_confidence_check(args):
+    conn = _connect(args)
+    try:
+        if args.decay:
+            demoted = apply_confidence_decay(conn)
+            if args.json:
+                print(json.dumps(demoted))
+            elif not demoted:
+                print("No concepts demoted.")
+            else:
+                for d in demoted:
+                    print(f"Demoted '{d['name']}': {d['from']} -> {d['to']}")
+        else:
+            eligible = check_promotion_eligibility(conn)
+            if args.json:
+                print(json.dumps(eligible))
+            elif not eligible:
+                print("No concepts eligible for promotion.")
+            else:
+                for e in eligible:
+                    print(f"{e['name']}: {e['current']} -> {e['suggested']} ({e['reason']})")
+    finally:
+        conn.close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -386,6 +480,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--verify', action='store_true',
                    help='Check if existing reflect-context.json is fresh (exit 0=fresh, 1=stale)')
     p.set_defaults(func=cmd_reflect_prep)
+
+    p = sub.add_parser('review-summary', help='Create, list, or view weekly summaries')
+    p.add_argument('--create', metavar='YYYY-MM-DD', help='Create summary for this week')
+    p.add_argument('--week', metavar='YYYY-MM-DD', help='View summary for this week')
+    p.set_defaults(func=cmd_review_summary)
+
+    p = sub.add_parser('promote', help='Promote concept confidence level')
+    p.add_argument('name', help='Concept name')
+    p.add_argument('level', choices=['established', 'settled'], help='Target confidence')
+    p.set_defaults(func=cmd_promote)
+
+    p = sub.add_parser('dismiss', help='Dismiss an edge signal')
+    p.add_argument('edge_id', type=int, help='Edge ID to dismiss')
+    p.set_defaults(func=cmd_dismiss)
+
+    p = sub.add_parser('confidence-check', help='Check promotion eligibility or run decay')
+    p.add_argument('--decay', action='store_true', help='Apply confidence decay rules')
+    p.set_defaults(func=cmd_confidence_check)
 
     return parser
 
