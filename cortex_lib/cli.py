@@ -19,6 +19,7 @@ from .review import (
     triage_signal, pending_signals, generate_synthesis,
 )
 from .confidence import promote_concept, check_promotion_eligibility, apply_confidence_decay
+from .portability import export_graph, import_graph
 
 
 def _connect(args):
@@ -369,6 +370,35 @@ def cmd_dismiss(args):
     return 0
 
 
+def cmd_export(args):
+    conn = _connect(args)
+    try:
+        data = export_graph(conn)
+        output = json.dumps(data, indent=2)
+        if args.output:
+            Path(args.output).write_text(output)
+            print(f"Exported to {args.output}")
+        else:
+            print(output)
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_import(args):
+    conn = _connect(args)
+    try:
+        data = json.loads(Path(args.file).read_text())
+        result = import_graph(conn, data)
+        print(f"Import complete:")
+        print(f"  Concepts: {result['concepts_created']} created, {result['concepts_updated']} updated")
+        print(f"  Edges: {result['edges_created']} created, {result['edges_strengthened']} strengthened")
+        print(f"  Rules: {result['rules_added']} added")
+    finally:
+        conn.close()
+    return 0
+
+
 def cmd_confidence_check(args):
     conn = _connect(args)
     try:
@@ -498,6 +528,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser('confidence-check', help='Check promotion eligibility or run decay')
     p.add_argument('--decay', action='store_true', help='Apply confidence decay rules')
     p.set_defaults(func=cmd_confidence_check)
+
+    p = sub.add_parser('export', help='Export graph to JSON')
+    p.add_argument('--output', '-o', help='Output file path (default: stdout)')
+    p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser('import', help='Import graph from JSON')
+    p.add_argument('file', help='JSON file to import')
+    p.set_defaults(func=cmd_import)
 
     return parser
 
