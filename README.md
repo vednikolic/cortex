@@ -15,6 +15,24 @@ Your AI starts every conversation from zero. Cortex gives it memory that grows f
 
 Two skills and a CLI. No background processes, no magic.
 
+## Where cortex fits
+
+There are three levels to getting AI memory right:
+
+<div align="center">
+<img src="assets/memory-maturity-model.png" alt="AI Memory Maturity Model" width="600" />
+</div>
+
+<br />
+
+**Remember.** Write things down. Every AI tool does this now. Table stakes.
+
+**Forget.** Clean up what you wrote. Anthropic's Auto Dream handles this for Claude Code: deduplicating entries, fixing dates, pruning stale context. Real progress at the platform level.
+
+**Connect.** Surface patterns across projects you would not notice yourself. Flag when a decision in one project contradicts an assumption in another. Catch the idea you mentioned three times but never acted on.
+
+Most tools stop at forget. Cortex picks up where cleanup ends. It runs alongside Auto Dream, not instead of it. Cleaning and connecting are different jobs.
+
 ```
   SESSION                    /save                      KNOWLEDGE GRAPH              /reflect
   -------                    -----                      ---------------              --------
@@ -30,7 +48,7 @@ Two skills and a CLI. No background processes, no magic.
 
 ## The problem
 
-Claude Code's auto-memory dumps everything into one flat file. After a few weeks it's cluttered with stale entries, duplicates, and noise. Your agent's context gets worse over time, not better.
+Every AI tool that tries to remember you eventually drowns in its own notes. By month three your memory is full of duplicates, contradictions, and stale context. The AI that was supposed to know your work starts to feel like a colleague who has been on sabbatical for six months.
 
 ## What cortex does
 
