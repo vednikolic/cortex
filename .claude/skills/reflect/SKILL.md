@@ -90,20 +90,14 @@ Do not read full session transcripts. Too expensive and too noisy. The daily not
 
 ---
 
-## Graph pre-check (requires concepts CLI)
+## Graph availability check (requires concepts CLI)
 
-Before running analysis passes, check for `reflect-context.json` in the workspace root:
+Before running analysis passes, check if the concepts CLI is available:
 
-1. **File exists:** Validate freshness by running:
-   ```bash
-   ~/.cortex/concepts reflect-prep --verify
-   ```
-   - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
-   - Exit code 1 (prints "stale: ..."): auto-regenerate by running `~/.cortex/concepts reflect-prep`. If regeneration succeeds, use the fresh data. If it fails, continue without graph data
-   - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale and continue without graph data
-2. **File does not exist:** Continue without graph data. This is expected before the first /save with cortex installed
+1. **CLI exists:** Test by running `~/.cortex/concepts --version`. If it succeeds, set `$GRAPH_AVAILABLE = true`. Graph data will be queried live in each pass that needs it.
+2. **CLI does not exist:** Set `$GRAPH_AVAILABLE = false`. Continue without graph data. This is expected before cortex is installed.
 
-When graph data is available, the variable `$GRAPH_DATA` refers to the parsed reflect-context.json contents.
+There is no reflect-context.json dependency. All graph queries run live against concepts.db via the CLI. This eliminates the staleness gap between /save writes and /reflect reads.
 
 ---
 
@@ -138,10 +132,10 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 **Input:** All project CLAUDE.md files under `$PROJECT_ROOT/`, MEMORY.md, the last 7 daily notes.
 **Output:** 3-5 signal entries for the reflect-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
 
-**When $GRAPH_DATA is available**, use structured graph data instead of raw text matching:
-- Use `shared_concepts` for cross-project signals (replaces pairwise concept comparison)
-- Use `hot_concepts` for concept velocity and trending patterns
-- Use `stale_concepts` as additional input for stale detection (supplement Pass 1)
+**When $GRAPH_AVAILABLE is true**, query the graph directly instead of raw text matching:
+- Run `~/.cortex/concepts --json shared` for cross-project concepts (replaces pairwise concept comparison)
+- Run `~/.cortex/concepts --json hot` for concept velocity and trending patterns
+- Run `~/.cortex/concepts --json stale` as additional input for stale detection (supplement Pass 1)
 - Classify signals as before (OPPORTUNITY / RISK / CONVERGENCE) with higher confidence when backed by graph data with edge strength >= 2
 
 This is the second-brain pass. It requires model reasoning (string matching alone cannot detect conceptual overlap).
@@ -185,18 +179,18 @@ Examples of what this catches:
 
 ### Pass 6: Graph health (requires concepts CLI)
 
-**Input:** `$GRAPH_DATA` (if available). Skip this pass if no graph data.
+**Input:** Live CLI queries (if $GRAPH_AVAILABLE is true). Skip this pass if CLI is not available.
 **Output:** A graph health section in the reflect-log entry.
 
-1. Report graph summary: N concepts, M edges, K projects, N normalization rules
-2. Flag any graph maturity metrics below threshold:
+1. Run `~/.cortex/concepts --json graph` and report summary: N concepts, M edges, K projects, N normalization rules
+2. Run `~/.cortex/concepts --json velocity` and note extraction rate trends
+3. Flag any graph maturity metrics below threshold:
    - Fewer than 10 concepts
    - Fewer than 2 projects
    - No edges with strength >= 3
    - No cross-project concepts
-3. Surface concepts with edge strength >= 3 (mature signals worth reviewing)
-4. Note extraction rate trends if stats data shows velocity change
-5. If graph data was stale, note that and recommend running reflect-prep
+4. Run `~/.cortex/concepts --json hot` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
+5. Run `~/.cortex/concepts --json co-occurs <name>` for the top 3 hot concepts to surface structural similarity
 
 ---
 

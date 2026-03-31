@@ -11,7 +11,7 @@ from .canon import load_abbreviations, seed_abbreviations
 from .ops import upsert_concept, add_edge, query_concept, log_extraction
 from .analysis import (
     shared_concepts, stale_concepts, hot_concepts,
-    graph_summary, weight_stats,
+    graph_summary, weight_stats, concept_velocity,
 )
 from .correction import correct_concept, undo_last_extraction, merge_concepts
 from .review import (
@@ -285,6 +285,8 @@ def cmd_list(args):
 
 
 def cmd_reflect_prep(args):
+    print("WARNING: reflect-prep is deprecated. /reflect now queries the graph directly via CLI.",
+          file=sys.stderr)
     from .reflect_prep import write_reflect_context, validate_content_hash
     db = Path(args.db) if args.db else None
     if args.verify:
@@ -425,6 +427,22 @@ def cmd_confidence_check(args):
     return 0
 
 
+def cmd_velocity(args):
+    conn = _connect(args)
+    try:
+        result = concept_velocity(conn, args.weeks)
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(f"Concept velocity (last {args.weeks} weeks):")
+            print(f"  Average: {result['avg_per_week']:.1f} concepts/week")
+            for w in result['weeks']:
+                print(f"  {w['week_start']}: {w['concepts_added']} added")
+    finally:
+        conn.close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -528,6 +546,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser('confidence-check', help='Check promotion eligibility or run decay')
     p.add_argument('--decay', action='store_true', help='Apply confidence decay rules')
     p.set_defaults(func=cmd_confidence_check)
+
+    p = sub.add_parser('velocity', help='Show concept creation velocity per week')
+    p.add_argument('--weeks', type=int, default=4, help='Number of weeks to analyze')
+    p.set_defaults(func=cmd_velocity)
 
     p = sub.add_parser('export', help='Export graph to JSON')
     p.add_argument('--output', '-o', help='Output file path (default: stdout)')
