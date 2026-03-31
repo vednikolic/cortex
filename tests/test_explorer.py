@@ -76,3 +76,17 @@ def test_unknown_path_returns_404(explorer_server):
     with pytest.raises(HTTPError) as exc_info:
         urlopen(f"http://127.0.0.1:{explorer_server}/api/nonexistent")
     assert exc_info.value.code == 404
+
+
+def test_html_contains_d3(explorer_server):
+    """Explorer HTML loads D3.js."""
+    resp = urlopen(f"http://127.0.0.1:{explorer_server}/")
+    body = resp.read().decode()
+    assert "d3js.org" in body
+
+
+def test_html_contains_search(explorer_server):
+    """Explorer HTML has a search input."""
+    resp = urlopen(f"http://127.0.0.1:{explorer_server}/")
+    body = resp.read().decode()
+    assert 'id="search"' in body
