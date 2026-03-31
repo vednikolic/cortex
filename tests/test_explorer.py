@@ -114,3 +114,47 @@ def test_html_contains_replay_slider(explorer_server):
     body = resp.read().decode()
     assert 'id="replay-slider"' in body
     assert 'id="replay-btn"' in body
+
+
+def test_correct_endpoint_renames(explorer_server):
+    """POST /api/correct renames a concept."""
+    body = json.dumps({"old_name": "auth", "new_name": "authentication"}).encode()
+    req = Request(f"http://127.0.0.1:{explorer_server}/api/correct",
+                  data=body, headers={"Content-Type": "application/json"})
+    resp = urlopen(req)
+    data = json.loads(resp.read())
+    assert data["new_name"] == "authentication"
+
+    # Verify via graph endpoint
+    resp2 = urlopen(f"http://127.0.0.1:{explorer_server}/api/graph")
+    graph = json.loads(resp2.read())
+    names = [c["name"] for c in graph["concepts"]]
+    assert "authentication" in names
+    assert "auth" not in names
+
+
+def test_merge_endpoint(explorer_server):
+    """POST /api/merge merges source into target."""
+    body = json.dumps({"source": "auth", "target": "python"}).encode()
+    req = Request(f"http://127.0.0.1:{explorer_server}/api/merge",
+                  data=body, headers={"Content-Type": "application/json"})
+    resp = urlopen(req)
+    data = json.loads(resp.read())
+    assert data["target"] == "python"
+
+
+def test_flag_endpoint_creates_queue(explorer_server, tmp_path):
+    """POST /api/flag writes to correction-queue.json."""
+    body = json.dumps({"name": "auth", "issue": "wrong kind"}).encode()
+    req = Request(f"http://127.0.0.1:{explorer_server}/api/flag",
+                  data=body, headers={"Content-Type": "application/json"})
+    resp = urlopen(req)
+    data = json.loads(resp.read())
+    assert data["status"] == "flagged"
+    assert data["queue_length"] == 1
+
+    queue_path = tmp_path / "correction-queue.json"
+    assert queue_path.exists()
+    queue = json.loads(queue_path.read_text())
+    assert len(queue) == 1
+    assert queue[0]["concept"] == "auth"

@@ -31,7 +31,22 @@ svg { flex: 1; }
 #replay-btn:hover { background: #30363d; }
 #replay-date { font-size: 12px; color: #58a6ff; min-width: 80px; }
 #replay-counts { font-size: 12px; color: #8b949e; }
-/* CORRECTION_STYLES */
+#edit-panel { display: none; border-top: 1px solid #30363d; padding-top: 12px; }
+#edit-panel.visible { display: block; }
+#edit-panel h2 { margin-bottom: 8px; }
+#edit-panel-name { font-size: 15px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
+.edit-btn { display: block; width: 100%; padding: 6px 10px; margin-bottom: 6px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; cursor: pointer; text-align: left; }
+.edit-btn:hover { background: #30363d; }
+.edit-btn.danger { color: #f85149; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.visible { display: flex; }
+.modal { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; min-width: 300px; }
+.modal h3 { font-size: 15px; color: #c9d1d9; margin-bottom: 12px; }
+.modal input, .modal select { width: 100%; padding: 6px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; margin-bottom: 12px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-actions button { padding: 6px 14px; border-radius: 6px; border: 1px solid #30363d; font-size: 13px; cursor: pointer; }
+.btn-cancel { background: #21262d; color: #c9d1d9; }
+.btn-confirm { background: #238636; color: #fff; border-color: #238636; }
 </style>
 </head>
 <body>
@@ -50,7 +65,33 @@ svg { flex: 1; }
     <h2>Summary</h2>
     <div id="summary"></div>
   </div>
-  <!-- CORRECTION_PANEL -->
+  <div id="edit-panel">
+    <h2>Edit Concept</h2>
+    <div id="edit-panel-name"></div>
+    <button class="edit-btn" onclick="showRenameModal()">Rename</button>
+    <button class="edit-btn" onclick="showMergeModal()">Merge into...</button>
+    <button class="edit-btn danger" onclick="flagConcept()">Flag incorrect</button>
+  </div>
+  <div id="rename-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>Rename concept</h3>
+      <input type="text" id="rename-input" placeholder="New name">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="btn-confirm" onclick="doRename()">Rename</button>
+      </div>
+    </div>
+  </div>
+  <div id="merge-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>Merge into</h3>
+      <select id="merge-select"></select>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="btn-confirm" onclick="doMerge()">Merge</button>
+      </div>
+    </div>
+  </div>
 </div>
 <div id="main">
   <svg id="graph"></svg>
@@ -271,13 +312,15 @@ async function init() {
 
   // Click to highlight neighbors
   nodeEls.on('click', (e, d) => {
-    // CORRECTION_SELECT
+    const panel = document.getElementById('edit-panel');
+    panel.classList.add('visible');
+    document.getElementById('edit-panel-name').textContent = d.name;
     if (selectedNode === d.id) {
       selectedNode = null;
       nodeEls.attr('fill-opacity', nd => CONF_OPACITY[nd.confidence] || 0.75);
       linkEls.attr('stroke-opacity', 0.5);
       labelEls.attr('fill-opacity', 1);
-      // CORRECTION_DESELECT
+      panel.classList.remove('visible');
       return;
     }
     selectedNode = d.id;
@@ -317,7 +360,77 @@ async function init() {
   applyFilters();
 }
 
-// CORRECTION_SCRIPT
+function getSelectedName() {
+  return document.getElementById('edit-panel-name').textContent;
+}
+
+function showRenameModal() {
+  const input = document.getElementById('rename-input');
+  input.value = getSelectedName();
+  document.getElementById('rename-modal').classList.add('visible');
+}
+
+function showMergeModal() {
+  const sel = document.getElementById('merge-select');
+  clearChildren(sel);
+  const current = getSelectedName();
+  const names = allConcepts.map(c => c.name).filter(n => n !== current).sort();
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    sel.appendChild(opt);
+  });
+  document.getElementById('merge-modal').classList.add('visible');
+}
+
+function closeModals() {
+  document.getElementById('rename-modal').classList.remove('visible');
+  document.getElementById('merge-modal').classList.remove('visible');
+}
+
+function doRename() {
+  const oldName = getSelectedName();
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName || newName === oldName) { closeModals(); return; }
+  fetch('/api/correct', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({old_name: oldName, new_name: newName})
+  }).then(r => r.json()).then(data => {
+    closeModals();
+    if (data.error) { alert(data.error); return; }
+    location.reload();
+  }).catch(err => alert(err));
+}
+
+function doMerge() {
+  const source = getSelectedName();
+  const target = document.getElementById('merge-select').value;
+  if (!target) { closeModals(); return; }
+  fetch('/api/merge', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({source: source, target: target})
+  }).then(r => r.json()).then(data => {
+    closeModals();
+    if (data.error) { alert(data.error); return; }
+    location.reload();
+  }).catch(err => alert(err));
+}
+
+function flagConcept() {
+  const name = getSelectedName();
+  fetch('/api/flag', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, issue: 'flagged via explorer'})
+  }).then(r => r.json()).then(data => {
+    if (data.error) { alert(data.error); return; }
+    alert('Concept "' + name + '" flagged for review.');
+  }).catch(err => alert(err));
+}
+
 init();
 </script>
 </body>
