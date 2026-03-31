@@ -278,15 +278,15 @@ def cmd_list(args):
     return 0
 
 
-def cmd_dream_prep(args):
-    from .dream_prep import write_dream_context, validate_content_hash
+def cmd_reflect_prep(args):
+    from .reflect_prep import write_reflect_context, validate_content_hash
     db = Path(args.db) if args.db else None
     if args.verify:
-        # Check if existing dream-context.json is fresh
+        # Check if existing reflect-context.json is fresh
         db_path = Path(args.db) if args.db else find_db_path()
-        context_path = db_path.parent / 'dream-context.json'
+        context_path = db_path.parent / 'reflect-context.json'
         if not context_path.exists():
-            print("stale: dream-context.json does not exist")
+            print("stale: reflect-context.json does not exist")
             return 1
         with open(context_path) as f:
             data = json.load(f)
@@ -296,7 +296,7 @@ def cmd_dream_prep(args):
         else:
             print("stale: content hash mismatch")
             return 1
-    path = write_dream_context(db_path=db)
+    path = write_reflect_context(db_path=db)
     print(f"Written: {path}")
     return 0
 
@@ -382,10 +382,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser('list', help='List all concept names (vocabulary query)')
     p.set_defaults(func=cmd_list)
 
-    p = sub.add_parser('dream-prep', help='Generate or verify dream-context.json')
+    p = sub.add_parser('reflect-prep', help='Generate or verify reflect-context.json')
     p.add_argument('--verify', action='store_true',
-                   help='Check if existing dream-context.json is fresh (exit 0=fresh, 1=stale)')
-    p.set_defaults(func=cmd_dream_prep)
+                   help='Check if existing reflect-context.json is fresh (exit 0=fresh, 1=stale)')
+    p.set_defaults(func=cmd_reflect_prep)
 
     return parser
 

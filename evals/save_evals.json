@@ -68,7 +68,7 @@
     {
         "id": "paths_use_variables",
         "category": "portability",
-        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $DREAM_LOG) throughout the workflow rather than hardcoded directory paths?",
+        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $REFLECT_LOG) throughout the workflow rather than hardcoded directory paths?",
         "weight": 1.0
     },
     {

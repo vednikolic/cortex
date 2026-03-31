@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Cortex Skill Eval Harness
-Scores /save and /dream SKILL.md files with binary evals.
+Scores /save and /reflect SKILL.md files with binary evals.
 
 Uses `claude -p` (Claude Code CLI) as the LLM judge.
 
 Usage:
     python eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json
-    python eval.py ../.claude/skills/dream/SKILL.md --evals dream_evals.json
+    python eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_evals.json
     python eval.py <target> --evals <evals.json> --verbose --output json
 """
 

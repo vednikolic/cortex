@@ -14,7 +14,7 @@
     {
         "id": "has_output_template",
         "category": "structure",
-        "check": "Does the document include a structured output template showing the exact format of dream-log.md entries with section headings for different finding types?",
+        "check": "Does the document include a structured output template showing the exact format of reflect-log.md entries with section headings for different finding types?",
         "weight": 1.0
     },
     {
@@ -56,19 +56,19 @@
     {
         "id": "never_writes_memory",
         "category": "constraints",
-        "check": "Does the document explicitly state that /dream never writes to MEMORY.md, only to dream-log.md?",
+        "check": "Does the document explicitly state that /reflect never writes to MEMORY.md, only to reflect-log.md?",
         "weight": 1.5
     },
     {
         "id": "never_auto_promotes",
         "category": "constraints",
-        "check": "Does the document explicitly state that /dream never auto-promotes entries to CLAUDE.md and always requires human review?",
+        "check": "Does the document explicitly state that /reflect never auto-promotes entries to CLAUDE.md and always requires human review?",
         "weight": 1.0
     },
     {
         "id": "never_deletes",
         "category": "constraints",
-        "check": "Does the document explicitly state that /dream never deletes stale entries, only flags them?",
+        "check": "Does the document explicitly state that /reflect never deletes stale entries, only flags them?",
         "weight": 1.0
     },
     {
@@ -80,19 +80,19 @@
     {
         "id": "paths_use_variables",
         "category": "portability",
-        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $DREAM_LOG, $PROJECT_ROOT) rather than hardcoded directory paths in the analysis instructions?",
+        "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $REFLECT_LOG, $PROJECT_ROOT) rather than hardcoded directory paths in the analysis instructions?",
         "weight": 1.0
     },
     {
         "id": "reads_defined_sources",
         "category": "completeness",
-        "check": "Does the document explicitly list all files/sources that /dream reads (MEMORY.md, dream-log, learnings, daily notes, project CLAUDE.md files) with specific paths or path patterns?",
+        "check": "Does the document explicitly list all files/sources that /reflect reads (MEMORY.md, reflect-log, learnings, daily notes, project CLAUDE.md files) with specific paths or path patterns?",
         "weight": 1.0
     },
     {
         "id": "append_only_output",
         "category": "constraints",
-        "check": "Does the document specify that dream-log.md is append-only (new entries are appended, old entries are never modified or removed)?",
+        "check": "Does the document specify that reflect-log.md is append-only (new entries are appended, old entries are never modified or removed)?",
         "weight": 0.5
     }
 ]

@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # cortex installer
-# Copies /save and /dream skills into a workspace's .claude/skills/ directory.
+# Copies /save and /reflect skills into a workspace's .claude/skills/ directory.
 # Claude Code discovers skills from project-local .claude/skills/<name>/SKILL.md.
 # Global ~/.claude/skills/ does NOT support skill discovery (verified 2026-03-23).
 # Optionally creates .memory-config in the same workspace.
 
 CORTEX_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILLS=("save" "dream")
+SKILLS=("save" "reflect")
 
 echo "cortex installer"
 echo "================"
@@ -74,9 +74,9 @@ mkdir -p "$CORTEX_HOME"
 cp -r "$CORTEX_DIR/cortex_lib" "$CORTEX_HOME/"
 cp "$CORTEX_DIR/concepts" "$CORTEX_HOME/"
 cp "$CORTEX_DIR/abbreviations.json" "$CORTEX_HOME/"
-cp "$CORTEX_DIR/dream-prep.sh" "$CORTEX_HOME/"
+cp "$CORTEX_DIR/reflect-prep.sh" "$CORTEX_HOME/"
 chmod +x "$CORTEX_HOME/concepts"
-chmod +x "$CORTEX_HOME/dream-prep.sh"
+chmod +x "$CORTEX_HOME/reflect-prep.sh"
 
 echo "Concepts CLI installed."
 
@@ -141,7 +141,7 @@ if [ "$test_failed" -eq 0 ]; then
     echo ""
     echo "Usage (in a Claude Code session started from $workspace_path):"
     echo "  /save              Save session learnings to memory"
-    echo "  /dream             Run background memory consolidation"
+    echo "  /reflect           Run background memory consolidation"
     echo "  concepts <cmd>     Manage the knowledge graph"
     echo ""
     echo "To customize paths, edit .memory-config in your workspace root."

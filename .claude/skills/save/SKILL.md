@@ -20,7 +20,7 @@ Read `.memory-config` from the workspace root (same directory as `.claude/`). Pa
 |---|---|---|
 | `$DAILY_DIR` | `daily_dir` | `2-areas/me/daily` |
 | `$LEARNINGS` | `learnings` | `2-areas/me/learnings.md` |
-| `$DREAM_LOG` | `dream_log` | `2-areas/me/dream-log.md` |
+| `$REFLECT_LOG` | `reflect_log` | `2-areas/me/reflect-log.md` |
 | `$PROJECT_ROOT` | `project_root` | `1-projects` |
 | `$WORKSPACE` | `workspace` | `personal` |
 
@@ -278,7 +278,7 @@ Graph: N concepts, M edges, K projects.
 
 At specific thresholds, add invitations:
 - At 5+ concepts: `Tip: Run 'concepts graph' to see your knowledge graph.`
-- At 10+ concepts across 2+ projects: `Your graph is ready for full /dream integration. Run 'concepts dream-prep' before your next /dream.`
+- At 10+ concepts across 2+ projects: `Your graph is ready for full /reflect integration. Run 'concepts reflect-prep' before your next /reflect.`
 
 ---
 

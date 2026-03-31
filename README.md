@@ -4,7 +4,7 @@
 
 <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
 <img src="https://img.shields.io/badge/stdlib%20only-no%20pip-10B981?style=for-the-badge" />
-<img src="https://img.shields.io/badge/skills-save%20%2B%20dream-8B5CF6?style=for-the-badge" />
+<img src="https://img.shields.io/badge/skills-save%20%2B%20reflect-8B5CF6?style=for-the-badge" />
 <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" />
 
 </div>
@@ -16,8 +16,8 @@ Your AI starts every conversation from zero. Cortex gives it memory that grows f
 Two skills and a CLI. No background processes, no magic.
 
 ```
-  SESSION                    /save                      KNOWLEDGE GRAPH              /dream
-  -------                    -----                      ---------------              ------
+  SESSION                    /save                      KNOWLEDGE GRAPH              /reflect
+  -------                    -----                      ---------------              --------
 
   +------------+      +----------------+      +--------------------+      +-------------------+
   | Decisions  |      | Daily notes    |      |   postgresql       |      | Stale: 3 entries  |
@@ -34,7 +34,7 @@ Claude Code's auto-memory dumps everything into one flat file. After a few weeks
 
 ## What cortex does
 
-**`/save`** captures session learnings and routes them to the right place. **`/dream`** reviews what's accumulated and surfaces patterns you'd miss. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
+**`/save`** captures session learnings and routes them to the right place. **`/reflect`** reviews what's accumulated and surfaces patterns you'd miss. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
 
 ## Install
 
@@ -47,7 +47,7 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save` and `/dream` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save` and `/reflect` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
 
 Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Python 3.10+ (stdlib only, no pip dependencies).
 
@@ -91,12 +91,12 @@ Signals:
 
 Then it looks for signals: opportunities across projects, risk conflicts, converging needs.
 
-## What happens when you /dream
+## What happens when you /reflect
 
 Run weekly or after heavy sessions. Five analysis passes over your accumulated memory:
 
 ```
-> /dream
+> /reflect
 
 Stale (3):
   "Redis caching layer" -- not referenced in 14 days
@@ -115,7 +115,7 @@ Promotion candidates:
   -- seen 3 times, mature enough for CLAUDE.md rule
 ```
 
-`/dream` never modifies your files. It surfaces findings. You decide what to act on.
+`/reflect` never modifies your files. It surfaces findings. You decide what to act on.
 
 ## Knowledge graph
 
@@ -188,16 +188,16 @@ graph LR
     retry -->|"related-to (2)"| app
 ```
 
-Each node is a **concept** with a kind and confidence level. Edges carry a **relation type** and **strength** that increments each time the relationship is reinforced across sessions. `retry-pattern` appearing in both `my-api` and `my-app` is the kind of cross-project signal `/dream` surfaces.
+Each node is a **concept** with a kind and confidence level. Edges carry a **relation type** and **strength** that increments each time the relationship is reinforced across sessions. `retry-pattern` appearing in both `my-api` and `my-app` is the kind of cross-project signal `/reflect` surfaces.
 
-### Preparing graph data for /dream
+### Preparing graph data for /reflect
 
 ```bash
-concepts dream-prep              # Generate dream-context.json
-concepts dream-prep --verify     # Check if data is fresh
+concepts reflect-prep              # Generate reflect-context.json
+concepts reflect-prep --verify     # Check if data is fresh
 ```
 
-Run `dream-prep` before `/dream` to give it structured graph data. Without it, `/dream` still works but relies on text matching instead of graph queries.
+Run `reflect-prep` before `/reflect` to give it structured graph data. Without it, `/reflect` still works but relies on text matching instead of graph queries.
 
 ## Configuration
 
@@ -206,7 +206,7 @@ Create `.memory-config` in your workspace root:
 ```
 daily_dir: 2-areas/me/daily
 learnings: 2-areas/me/learnings.md
-dream_log: 2-areas/me/dream-log.md
+reflect_log: 2-areas/me/reflect-log.md
 project_root: 1-projects
 workspace: personal
 ```
@@ -226,7 +226,7 @@ LLM evals (requires Claude Code):
 ```bash
 cd evals
 python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
-python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_graph_evals.json --verbose
+python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_graph_evals.json --verbose
 ```
 
 ## CLI reference
@@ -247,7 +247,7 @@ python3 eval.py ../.claude/skills/dream/SKILL.md --evals dream_graph_evals.json 
 | `concepts correct <old> <new>` | Rename a concept |
 | `concepts undo-last` | Revert the last extraction |
 | `concepts verify` | Database integrity check |
-| `concepts dream-prep` | Generate dream-context.json |
+| `concepts reflect-prep` | Generate reflect-context.json |
 
 All commands support `--db <path>` and `--json`.
 
@@ -258,7 +258,7 @@ flowchart TB
     session["Claude Code session"]
     session -->|"/save"| db[("concepts.db")]
     session -->|"route learnings"| files["Workspace files"]
-    db -->|"/dream"| signals["Signals"]
+    db -->|"/reflect"| signals["Signals"]
 
     signals -.->|"/review"| triage["Promote · Dismiss · Defer"]
     triage -.-> db
@@ -272,7 +272,7 @@ flowchart TB
 
 Solid lines are live today. Dashed lines are planned.
 
-- **Review and synthesis**: `/review` triages `/dream` signals. Promote confident concepts, dismiss false edges, defer uncertain patterns. Weekly synthesis tracks how the graph evolves
+- **Review and synthesis**: `/review` triages `/reflect` signals. Promote confident concepts, dismiss false edges, defer uncertain patterns. Weekly synthesis tracks how the graph evolves
 - **Graph explorer**: Visualize and traverse the knowledge graph
 - **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
 - **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare

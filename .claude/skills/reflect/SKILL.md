@@ -1,16 +1,16 @@
 ---
-name: dream
-description: "Background memory consolidation. Reviews MEMORY.md, project CLAUDE.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /dream. Writes a consolidation report to the configured dream log path. Never blocks. Never auto-promotes."
+name: reflect
+description: "Background memory consolidation. Reviews MEMORY.md, project CLAUDE.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /reflect. Writes a consolidation report to the configured reflect log path. Never blocks. Never auto-promotes."
 disable-model-invocation: true
 argument-hint: [optional focus area or project scope]
 allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(python3 -c *)
 ---
 
-# /dream -- Background Memory Consolidation
+# /reflect -- Background Memory Consolidation
 
 A lightweight consolidation pass that runs after heavy sessions or on demand. It does not save session state -- /save does that. It reads what has already been saved and looks for what it implies: patterns across sessions, stale entries that should be pruned, connections between projects, and ideas that have appeared multiple times without being promoted.
 
-The metaphor is accurate: this is not data entry. It is re-indexing.
+This is not data entry. It is re-indexing.
 
 ---
 
@@ -22,7 +22,7 @@ Read `.memory-config` from the workspace root (same directory as `.claude/`). Pa
 |---|---|---|
 | `$DAILY_DIR` | `daily_dir` | `2-areas/me/daily` |
 | `$LEARNINGS` | `learnings` | `2-areas/me/learnings.md` |
-| `$DREAM_LOG` | `dream_log` | `2-areas/me/dream-log.md` |
+| `$REFLECT_LOG` | `reflect_log` | `2-areas/me/reflect-log.md` |
 | `$PROJECT_ROOT` | `project_root` | `1-projects` |
 | `$WORKSPACE` | `workspace` | `personal` |
 
@@ -32,33 +32,33 @@ All path references in this document use these variables. Resolve them before re
 
 ## Trigger Logic
 
-Dream runs in two modes:
+Reflect runs in two modes:
 
 ### 1. Automatic post-session (Stop hook, async)
 
-The gate script `dream-gate.sh` decides whether to run a full consolidation:
+The gate script `reflect-gate.sh` decides whether to run a full consolidation:
 
 ```bash
 #!/usr/bin/env bash
-# ~/.claude/scripts/dream-gate.sh
-# Decide whether this session is heavy enough to warrant a dream pass.
+# ~/.claude/scripts/reflect-gate.sh
+# Decide whether this session is heavy enough to warrant a reflect pass.
 # Inputs: CLAUDE_SESSION_TURN_COUNT (env var from hook context)
 
 TURN_COUNT="${CLAUDE_SESSION_TURN_COUNT:-0}"
-LAST_DREAM="$HOME/.claude/dream-last-run"
+LAST_REFLECT="$HOME/.claude/reflect-last-run"
 NOW=$(date +%s)
 
-# Run if: session had 15+ turns, OR last dream was 24h+ ago
+# Run if: session had 15+ turns, OR last reflect was 24h+ ago
 if [ "$TURN_COUNT" -ge 15 ]; then
-  echo "dream:trigger:heavy-session turns=$TURN_COUNT" >> "$HOME/.claude/dream-gate.log"
+  echo "reflect:trigger:heavy-session turns=$TURN_COUNT" >> "$HOME/.claude/reflect-gate.log"
   exit 0  # signal to proceed
 fi
 
-if [ -f "$LAST_DREAM" ]; then
-  LAST=$(cat "$LAST_DREAM")
+if [ -f "$LAST_REFLECT" ]; then
+  LAST=$(cat "$LAST_REFLECT")
   DIFF=$((NOW - LAST))
   if [ "$DIFF" -ge 86400 ]; then
-    echo "dream:trigger:daily-elapsed diff=${DIFF}s" >> "$HOME/.claude/dream-gate.log"
+    echo "reflect:trigger:daily-elapsed diff=${DIFF}s" >> "$HOME/.claude/reflect-gate.log"
     exit 0
   fi
 fi
@@ -66,22 +66,22 @@ fi
 exit 1  # skip
 ```
 
-Exit 0 = proceed with dream. Exit 1 = skip. Since this is an async hook on Stop, exit code does not block the session.
+Exit 0 = proceed with reflect. Exit 1 = skip. Since this is an async hook on Stop, exit code does not block the session.
 
-### 2. Manual (/dream)
+### 2. Manual (/reflect)
 
 Run at any time. Useful after a large planning session, a naming decision, or a multi-project context switch.
 
 ---
 
-## What /dream reads
+## What /reflect reads
 
 Before running any analysis, locate and read these files. All paths are relative to the workspace root unless noted.
 
 | File | Path | What to read |
 |---|---|---|
 | MEMORY.md | `~/.claude/projects/<project-key>/memory/MEMORY.md` (where project-key is the workspace path with `/` replaced by `-`) | Full file, especially Promotion Queue section |
-| Dream log | `$DREAM_LOG` | Last entry only (to avoid duplicating findings) |
+| Reflect log | `$REFLECT_LOG` | Last entry only (to avoid duplicating findings) |
 | Learnings | `$LEARNINGS` | Full file |
 | Daily notes | `$DAILY_DIR/YYYY-MM-DD.md` | Last 7 files by date; read only Work Log and Tasks sections |
 | Project CLAUDE.md files | `$PROJECT_ROOT/*/CLAUDE.md` (use `find $PROJECT_ROOT -name "CLAUDE.md" -maxdepth 3`) | Friction Log, Decision Register, and architecture sections |
@@ -92,18 +92,18 @@ Do not read full session transcripts. Too expensive and too noisy. The daily not
 
 ## Graph pre-check (requires concepts CLI)
 
-Before running analysis passes, check for `dream-context.json` in the workspace root:
+Before running analysis passes, check for `reflect-context.json` in the workspace root:
 
 1. **File exists:** Validate freshness by running:
    ```bash
-   ~/.cortex/concepts dream-prep --verify
+   ~/.cortex/concepts reflect-prep --verify
    ```
    - Exit code 0 (prints "fresh"): graph data is current. Use it in analysis passes below
-   - Exit code 1 (prints "stale: ..."): auto-regenerate by running `~/.cortex/concepts dream-prep`. If regeneration succeeds, use the fresh data. If it fails, continue without graph data
+   - Exit code 1 (prints "stale: ..."): auto-regenerate by running `~/.cortex/concepts reflect-prep`. If regeneration succeeds, use the fresh data. If it fails, continue without graph data
    - If the `concepts` CLI is not available, check `generated_at` timestamp. If older than 1 hour, treat as stale and continue without graph data
 2. **File does not exist:** Continue without graph data. This is expected before the first /save with cortex installed
 
-When graph data is available, the variable `$GRAPH_DATA` refers to the parsed dream-context.json contents.
+When graph data is available, the variable `$GRAPH_DATA` refers to the parsed reflect-context.json contents.
 
 ---
 
@@ -114,7 +114,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 ### Pass 1: Stale detection
 
 **Input:** All entries in MEMORY.md, all entries in each project CLAUDE.md under `$PROJECT_ROOT/`, the last 7 daily notes from `$DAILY_DIR/`.
-**Output:** A list of `[STALE?]` flags for the dream-log.md Stale Flags section.
+**Output:** A list of `[STALE?]` flags for the reflect-log.md Stale Flags section.
 
 1. Extract every discrete entry (bullet point, decision, or note) from MEMORY.md.
 2. Extract every discrete entry from each project CLAUDE.md found under `$PROJECT_ROOT/`.
@@ -125,7 +125,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 ### Pass 2: Friction promotion
 
 **Input:** Friction Log sections from each project CLAUDE.md under `$PROJECT_ROOT/`.
-**Output:** A list of friction escalations for the dream-log.md Friction Escalations section.
+**Output:** A list of friction escalations for the reflect-log.md Friction Escalations section.
 
 1. Collect all Friction Log entries from every project CLAUDE.md.
 2. For each unique friction description, count distinct date prefixes (each entry has a date prefix).
@@ -136,7 +136,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 ### Pass 3: Cross-project signal detection
 
 **Input:** All project CLAUDE.md files under `$PROJECT_ROOT/`, MEMORY.md, the last 7 daily notes.
-**Output:** 3-5 signal entries for the dream-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
+**Output:** 3-5 signal entries for the reflect-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
 
 **When $GRAPH_DATA is available**, use structured graph data instead of raw text matching:
 - Use `shared_concepts` for cross-project signals (replaces pairwise concept comparison)
@@ -155,14 +155,14 @@ This is the second-brain pass. It requires model reasoning (string matching alon
 
 Examples of what this catches:
 
-- Two projects both have an "eval rerun" concept in separate CLAUDE.md files. Dream detects overlap. Surfaces: "Shared concept: eval rerun -- potential shared module or API boundary."
-- One project uses an exponential backoff pattern. MEMORY.md has a mental model about retry logic. Dream connects them and notes the mental model should reference the implementation as a concrete example.
-- A decision in one project assumes a specific data format. A different project's architecture note contradicts it silently. Dream flags the conflict.
+- Two projects both have an "eval rerun" concept in separate CLAUDE.md files. Reflect detects overlap. Surfaces: "Shared concept: eval rerun -- potential shared module or API boundary."
+- One project uses an exponential backoff pattern. MEMORY.md has a mental model about retry logic. Reflect connects them and notes the mental model should reference the implementation as a concrete example.
+- A decision in one project assumes a specific data format. A different project's architecture note contradicts it silently. Reflect flags the conflict.
 
 ### Pass 4: Promotion queue review
 
 **Input:** The `## Promotion Queue` section in MEMORY.md, the last 7 daily notes.
-**Output:** Promotion recommendations for the dream-log.md Promotion Queue section.
+**Output:** Promotion recommendations for the reflect-log.md Promotion Queue section.
 
 1. Read each candidate in the Promotion Queue.
 2. For each candidate, grep the last 7 daily notes for related terms.
@@ -174,7 +174,7 @@ Examples of what this catches:
 ### Pass 5: Idea and opportunity graph update
 
 **Input:** `$LEARNINGS`, the last 14 daily notes from `$DAILY_DIR/`.
-**Output:** Dormant signal entries for the dream-log.md Dormant Signals section.
+**Output:** Dormant signal entries for the reflect-log.md Dormant Signals section.
 
 1. Read `$LEARNINGS` in full and the Work Log section of the last 14 daily notes.
 2. Extract all ideas, goals, and interests mentioned in learnings.md.
@@ -186,7 +186,7 @@ Examples of what this catches:
 ### Pass 6: Graph health (requires concepts CLI)
 
 **Input:** `$GRAPH_DATA` (if available). Skip this pass if no graph data.
-**Output:** A graph health section in the dream-log entry.
+**Output:** A graph health section in the reflect-log entry.
 
 1. Report graph summary: N concepts, M edges, K projects, N normalization rules
 2. Flag any graph maturity metrics below threshold:
@@ -196,16 +196,16 @@ Examples of what this catches:
    - No cross-project concepts
 3. Surface concepts with edge strength >= 3 (mature signals worth reviewing)
 4. Note extraction rate trends if stats data shows velocity change
-5. If graph data was stale, note that and recommend running dream-prep
+5. If graph data was stale, note that and recommend running reflect-prep
 
 ---
 
-## Output: dream-log.md entry
+## Output: reflect-log.md entry
 
-Append to `$DREAM_LOG`:
+Append to `$REFLECT_LOG`:
 
 ```markdown
-## Dream -- YYYY-MM-DD HH:MM [trigger: heavy-session|manual]
+## Reflect -- YYYY-MM-DD HH:MM [trigger: heavy-session|manual]
 
 ### Stale flags
 - MEMORY.md: "[entry]" -- not referenced in 7 days [STALE?]
@@ -240,16 +240,16 @@ Keep each entry to one line. No paragraphs. The log is a feed, not a document.
 
 After writing, update the timestamp. Use python3 (covered by allowed-tools) to avoid shell redirect permission prompts:
 ```bash
-python3 -c "import time, pathlib; pathlib.Path.home().joinpath('.claude','dream-last-run').write_text(str(int(time.time())))"
+python3 -c "import time, pathlib; pathlib.Path.home().joinpath('.claude','reflect-last-run').write_text(str(int(time.time())))"
 ```
 
 ---
 
-## What /dream never does
+## What /reflect never does
 
 These are hard constraints. Violating any of them is a bug.
 
-1. **Never writes to MEMORY.md.** Dream reads MEMORY.md but never modifies it. All findings go to dream-log.md only.
+1. **Never writes to MEMORY.md.** Reflect reads MEMORY.md but never modifies it. All findings go to reflect-log.md only.
 2. **Never writes to project CLAUDE.md files or daily notes.** It surfaces findings. You decide what to act on.
 3. **Never auto-promotes entries to root CLAUDE.md.** It recommends promotions in the report. A human reviews and acts.
 4. **Never deletes stale entries.** It flags them as `[STALE?]`. Deletion is a human decision.
@@ -261,28 +261,28 @@ These are hard constraints. Violating any of them is a bug.
 
 ## Companion SessionStart hook
 
-To surface dream findings at the start of the next session, add:
+To surface reflect findings at the start of the next session, add:
 
 ```bash
 #!/usr/bin/env bash
-# ~/.claude/scripts/dream-surface.sh
-# If a dream ran since last session, inject the latest dream-log entry as context.
+# ~/.claude/scripts/reflect-surface.sh
+# If a reflect ran since last session, inject the latest reflect-log entry as context.
 
-DREAM_LOG="${DREAM_LOG:-2-areas/me/dream-log.md}"
-LAST_SESSION="$HOME/.claude/dream-last-surfaced"
+REFLECT_LOG="${REFLECT_LOG:-2-areas/me/reflect-log.md}"
+LAST_SESSION="$HOME/.claude/reflect-last-surfaced"
 NOW=$(date +%s)
 
-if [ ! -f "$DREAM_LOG" ]; then exit 0; fi
+if [ ! -f "$REFLECT_LOG" ]; then exit 0; fi
 
 if [ -f "$LAST_SESSION" ]; then
   LAST=$(cat "$LAST_SESSION")
-  # Only surface if dream ran after last surface
-  DREAM_TIME=$(stat -f %m "$DREAM_LOG" 2>/dev/null || stat -c %Y "$DREAM_LOG")
-  if [ "$DREAM_TIME" -le "$LAST" ]; then exit 0; fi
+  # Only surface if reflect ran after last surface
+  REFLECT_TIME=$(stat -f %m "$REFLECT_LOG" 2>/dev/null || stat -c %Y "$REFLECT_LOG")
+  if [ "$REFLECT_TIME" -le "$LAST" ]; then exit 0; fi
 fi
 
-# Extract the most recent dream entry (from last ## Dream header to next one)
-LATEST=$(awk '/^## Dream/{found=1; count++} found && count==1{print} /^## Dream/ && count>1{exit}' "$DREAM_LOG")
+# Extract the most recent reflect entry (from last ## Reflect header to next one)
+LATEST=$(awk '/^## Reflect/{found=1; count++} found && count==1{print} /^## Reflect/ && count>1{exit}' "$REFLECT_LOG")
 
 echo "$LATEST"
 echo "$NOW" > "$LAST_SESSION"
@@ -292,10 +292,10 @@ echo "$NOW" > "$LAST_SESSION"
 
 ## Design notes
 
-**Why not run on every Stop?** Too expensive and too noisy. The gate threshold (15 turns or 24h elapsed) ensures consolidation runs after sessions where enough happened to generate signal. A 3-turn session asking one question does not warrant a dream pass.
+**Why not run on every Stop?** Too expensive and too noisy. The gate threshold (15 turns or 24h elapsed) ensures consolidation runs after sessions where enough happened to generate signal. A 3-turn session asking one question does not warrant a reflect pass.
 
-**Why append-only to dream-log.md?** The log is an audit trail. You want to see not just the current state of signals but when they first appeared and how they evolved. Overwriting would destroy that. Prune old entries manually every few weeks.
+**Why append-only to reflect-log.md?** The log is an audit trail. You want to see not just the current state of signals but when they first appeared and how they evolved. Overwriting would destroy that. Prune old entries manually every few weeks.
 
 **Why 7 daily notes for stale detection?** Seven days is roughly one working week. If an entry has not come up in a week of active work, it is either stale or belongs in cold storage. 14 days would catch more false positives; 3 days would be too aggressive.
 
-**Why no auto-write to MEMORY.md?** Trust. The dream pass makes inferences. Inferences can be wrong. You need to review before anything gets encoded as ground truth. The report is advisory; MEMORY.md is authoritative.
+**Why no auto-write to MEMORY.md?** Trust. The reflect pass makes inferences. Inferences can be wrong. You need to review before anything gets encoded as ground truth. The report is advisory; MEMORY.md is authoritative.
