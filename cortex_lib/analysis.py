@@ -1,4 +1,4 @@
-"""Graph analysis: shared, stale, hot, graph summary, weight stats, confidence decay."""
+"""Graph analysis: shared, stale, hot, graph summary, weight stats, velocity."""
 
 import sqlite3
 from datetime import datetime, timezone, timedelta
@@ -92,40 +92,23 @@ def weight_stats(conn: sqlite3.Connection) -> dict:
     }
 
 
-def apply_confidence_decay(conn: sqlite3.Connection) -> list[dict]:
-    """Apply decay rules. Returns list of demoted concepts.
-
-    settled -> established after 90d unreferenced.
-    established -> tentative after 60d unreferenced.
-    """
+def concept_velocity(conn: sqlite3.Connection, weeks: int = 4) -> dict:
+    """Concepts added per week over the last N weeks."""
     now = datetime.now(timezone.utc)
-    demoted = []
-
-    cutoff_90 = (now - timedelta(days=90)).isoformat()
-    for c in conn.execute(
-        "SELECT id, name FROM concepts "
-        "WHERE confidence = 'settled' AND last_referenced < ?", (cutoff_90,)
-    ).fetchall():
-        conn.execute(
-            "UPDATE concepts SET confidence = 'established', updated_at = ? WHERE id = ?",
-            (now.isoformat(), c['id'])
-        )
-        demoted.append({'id': c['id'], 'name': c['name'], 'from': 'settled', 'to': 'established'})
-
-    # Exclude concepts just demoted above to prevent double-demotion in one pass
-    demoted_ids = {d['id'] for d in demoted}
-    cutoff_60 = (now - timedelta(days=60)).isoformat()
-    for c in conn.execute(
-        "SELECT id, name FROM concepts "
-        "WHERE confidence = 'established' AND last_referenced < ?", (cutoff_60,)
-    ).fetchall():
-        if c['id'] in demoted_ids:
-            continue  # already demoted this pass
-        conn.execute(
-            "UPDATE concepts SET confidence = 'tentative', updated_at = ? WHERE id = ?",
-            (now.isoformat(), c['id'])
-        )
-        demoted.append({'id': c['id'], 'name': c['name'], 'from': 'established', 'to': 'tentative'})
-
-    conn.commit()
-    return demoted
+    weekly = []
+    for i in range(weeks):
+        week_end = now - timedelta(weeks=i)
+        week_start = week_end - timedelta(weeks=1)
+        count = conn.execute(
+            "SELECT COUNT(*) FROM concepts WHERE created_at >= ? AND created_at < ?",
+            (week_start.isoformat(), week_end.isoformat())
+        ).fetchone()[0]
+        weekly.append({
+            'week_start': week_start.strftime('%Y-%m-%d'),
+            'concepts_added': count,
+        })
+    weekly.reverse()
+    return {
+        'weeks': weekly,
+        'avg_per_week': sum(w['concepts_added'] for w in weekly) / max(len(weekly), 1),
+    }

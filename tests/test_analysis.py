@@ -1,10 +1,10 @@
-"""Tests for analysis commands: shared, stale, hot, graph, stats."""
+"""Tests for analysis commands: shared, stale, hot, graph, stats, velocity."""
 
 from datetime import datetime, timezone, timedelta
 from cortex_lib.ops import upsert_concept, add_edge, log_extraction
 from cortex_lib.analysis import (
     shared_concepts, stale_concepts, hot_concepts,
-    graph_summary, weight_stats, apply_confidence_decay,
+    graph_summary, weight_stats, concept_velocity,
 )
 
 
@@ -79,29 +79,9 @@ def test_weight_stats_populated(db):
     assert result['total_extractions'] == 2
 
 
-def test_decay_settled_to_established(db):
-    upsert_concept(db, "old-thing")
-    old = (datetime.now(timezone.utc) - timedelta(days=91)).isoformat()
-    db.execute(
-        "UPDATE concepts SET confidence = 'settled', last_referenced = ? "
-        "WHERE name = 'old-thing'", (old,)
-    )
-    db.commit()
-    demoted = apply_confidence_decay(db)
-    assert len(demoted) == 1
-    assert demoted[0]['from'] == 'settled'
-    assert demoted[0]['to'] == 'established'
-
-
-def test_decay_established_to_tentative(db):
-    upsert_concept(db, "aging")
-    old = (datetime.now(timezone.utc) - timedelta(days=61)).isoformat()
-    db.execute(
-        "UPDATE concepts SET confidence = 'established', last_referenced = ? "
-        "WHERE name = 'aging'", (old,)
-    )
-    db.commit()
-    demoted = apply_confidence_decay(db)
-    assert len(demoted) == 1
-    assert demoted[0]['from'] == 'established'
-    assert demoted[0]['to'] == 'tentative'
+def test_concept_velocity(db):
+    upsert_concept(db, "python", session_hash="s1")
+    result = concept_velocity(db, weeks=4)
+    assert 'weeks' in result
+    assert 'avg_per_week' in result
+    assert len(result['weeks']) == 4
