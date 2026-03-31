@@ -112,3 +112,70 @@ def concept_velocity(conn: sqlite3.Connection, weeks: int = 4) -> dict:
         'weeks': weekly,
         'avg_per_week': sum(w['concepts_added'] for w in weekly) / max(len(weekly), 1),
     }
+
+
+def co_occurring_concepts(conn: sqlite3.Connection, name: str,
+                          min_shared: int = 2) -> list[dict]:
+    """Find concepts sharing N+ common neighbors with the given concept.
+
+    Two concepts "co-occur" when they both connect to the same third concepts.
+    Higher shared_count indicates stronger structural similarity.
+    """
+    concept = conn.execute(
+        "SELECT id FROM concepts WHERE LOWER(name) = LOWER(?)", (name,)
+    ).fetchone()
+    if not concept:
+        raise ValueError(f"Concept not found: '{name}'")
+
+    cid = concept[0]
+
+    # Get all neighbors of the target concept
+    my_neighbors = {row[0] for row in conn.execute(
+        "SELECT to_concept_id FROM concept_edges WHERE from_concept_id = ? "
+        "UNION "
+        "SELECT from_concept_id FROM concept_edges WHERE to_concept_id = ?",
+        (cid, cid)
+    ).fetchall()}
+
+    if not my_neighbors:
+        return []
+
+    # For each neighbor, find other concepts also connected to it
+    co_occurs: dict[int, set[int]] = {}
+    for nid in my_neighbors:
+        others = conn.execute(
+            "SELECT from_concept_id FROM concept_edges "
+            "WHERE to_concept_id = ? AND from_concept_id != ? "
+            "UNION "
+            "SELECT to_concept_id FROM concept_edges "
+            "WHERE from_concept_id = ? AND to_concept_id != ?",
+            (nid, cid, nid, cid)
+        ).fetchall()
+        for row in others:
+            oid = row[0]
+            if oid not in co_occurs:
+                co_occurs[oid] = set()
+            co_occurs[oid].add(nid)
+
+    # Filter by min_shared and build results
+    results = []
+    for oid, shared_nids in co_occurs.items():
+        if len(shared_nids) >= min_shared:
+            other_name = conn.execute(
+                "SELECT name FROM concepts WHERE id = ?", (oid,)
+            ).fetchone()[0]
+            shared_names = []
+            for nid in shared_nids:
+                n = conn.execute(
+                    "SELECT name FROM concepts WHERE id = ?", (nid,)
+                ).fetchone()
+                if n:
+                    shared_names.append(n[0])
+            results.append({
+                "concept": other_name,
+                "shared_count": len(shared_nids),
+                "shared_neighbors": sorted(shared_names),
+            })
+
+    results.sort(key=lambda x: x["shared_count"], reverse=True)
+    return results

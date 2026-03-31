@@ -443,6 +443,26 @@ def cmd_velocity(args):
     return 0
 
 
+def cmd_co_occurs(args):
+    conn = _connect(args)
+    try:
+        from .analysis import co_occurring_concepts
+        results = co_occurring_concepts(conn, args.name, args.min_shared)
+        if args.json:
+            print(json.dumps(results))
+        elif not results:
+            print(f"No co-occurring concepts for '{args.name}' "
+                  f"(min shared neighbors: {args.min_shared})")
+        else:
+            print(f"Concepts co-occurring with '{args.name}':")
+            for r in results:
+                print(f"  {r['concept']} ({r['shared_count']} shared): "
+                      f"{', '.join(r['shared_neighbors'])}")
+    finally:
+        conn.close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -550,6 +570,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser('velocity', help='Show concept creation velocity per week')
     p.add_argument('--weeks', type=int, default=4, help='Number of weeks to analyze')
     p.set_defaults(func=cmd_velocity)
+
+    p = sub.add_parser('co-occurs', help='Find concepts sharing common neighbors')
+    p.add_argument('name', help='Concept name')
+    p.add_argument('--min-shared', type=int, default=2,
+                   help='Minimum shared neighbors (default: 2)')
+    p.set_defaults(func=cmd_co_occurs)
 
     p = sub.add_parser('export', help='Export graph to JSON')
     p.add_argument('--output', '-o', help='Output file path (default: stdout)')
