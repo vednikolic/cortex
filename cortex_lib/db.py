@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-SCHEMA_VERSION = "1"
+from .migrate import run_migrations, get_schema_version
+
+SCHEMA_VERSION = "2"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS concepts (
@@ -81,7 +83,22 @@ CREATE TABLE IF NOT EXISTS schema_meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '1');
+INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '2');
+
+CREATE TABLE IF NOT EXISTS weekly_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_start TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    signals TEXT NOT NULL DEFAULT '[]',
+    concepts_promoted TEXT NOT NULL DEFAULT '[]',
+    concepts_dismissed TEXT NOT NULL DEFAULT '[]',
+    concepts_deferred TEXT NOT NULL DEFAULT '[]',
+    concept_count INTEGER NOT NULL DEFAULT 0,
+    edge_count INTEGER NOT NULL DEFAULT 0,
+    project_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_weekly_summaries_week ON weekly_summaries(week_start);
 """
 
 VALID_RELATIONS = frozenset({
@@ -123,6 +140,8 @@ def connect(db_path: Optional[Path] = None, wal: bool = True) -> sqlite3.Connect
     conn.execute("PRAGMA foreign_keys = ON")
     if wal:
         conn.execute("PRAGMA journal_mode = WAL")
+    if get_schema_version(conn) != SCHEMA_VERSION:
+        run_migrations(conn)
     return conn
 
 
@@ -150,7 +169,8 @@ def verify_db(conn: sqlite3.Connection) -> list[str]:
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()}
     expected = {'concepts', 'concept_sources', 'concept_edges',
-                'normalization_rules', 'extraction_log', 'schema_meta'}
+                'normalization_rules', 'extraction_log', 'schema_meta',
+                'weekly_summaries'}
     missing = expected - tables
     if missing:
         issues.append(f"Missing tables: {', '.join(sorted(missing))}")

@@ -8,7 +8,8 @@ def test_init_creates_all_tables(db):
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()}
     expected = {'concepts', 'concept_sources', 'concept_edges',
-                'normalization_rules', 'extraction_log', 'schema_meta'}
+                'normalization_rules', 'extraction_log', 'schema_meta',
+                'weekly_summaries'}
     assert expected.issubset(tables)
 
 
@@ -26,7 +27,7 @@ def test_schema_version(db):
     version = db.execute(
         "SELECT value FROM schema_meta WHERE key = 'version'"
     ).fetchone()[0]
-    assert version == '1'
+    assert version == '2'
 
 
 def test_verify_healthy_db(db):
