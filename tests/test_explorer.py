@@ -90,3 +90,27 @@ def test_html_contains_search(explorer_server):
     resp = urlopen(f"http://127.0.0.1:{explorer_server}/")
     body = resp.read().decode()
     assert 'id="search"' in body
+
+
+def test_timeline_concepts_ordered_by_date(explorer_server):
+    """Timeline concepts are sorted chronologically."""
+    resp = urlopen(f"http://127.0.0.1:{explorer_server}/api/timeline")
+    data = json.loads(resp.read())
+    dates = [c["first_seen"] for c in data["concepts"]]
+    assert dates == sorted(dates)
+
+
+def test_timeline_edges_ordered_by_date(explorer_server):
+    """Timeline edges are sorted chronologically."""
+    resp = urlopen(f"http://127.0.0.1:{explorer_server}/api/timeline")
+    data = json.loads(resp.read())
+    dates = [e["first_seen"] for e in data["edges"]]
+    assert dates == sorted(dates)
+
+
+def test_html_contains_replay_slider(explorer_server):
+    """Explorer HTML has the temporal replay slider."""
+    resp = urlopen(f"http://127.0.0.1:{explorer_server}/")
+    body = resp.read().decode()
+    assert 'id="replay-slider"' in body
+    assert 'id="replay-btn"' in body
