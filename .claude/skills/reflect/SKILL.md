@@ -88,6 +88,12 @@ Before running any analysis, locate and read these files. All paths are relative
 
 Do not read full session transcripts. Too expensive and too noisy. The daily notes are the already-distilled record.
 
+**Graceful handling of missing inputs:**
+- If fewer than 7 daily notes exist (new user), use however many are available. A user with 2 days of notes still gets a useful reflect pass over those 2 days. Stale detection uses the available window, not a fixed 7.
+- If MEMORY.md has no `## Promotion Queue` section, skip Pass 4 entirely and note "No promotion queue found" in the reflect-log entry under "No action required."
+- If no project CLAUDE.md files exist under `$PROJECT_ROOT/`, skip Pass 2 (friction promotion) and Pass 3 (cross-project signals). Report "No project CLAUDE.md files found" in the reflect-log. Passes 1, 4, 5, and 6 can still run against MEMORY.md, learnings, and daily notes.
+- Daily note entries tagged `[sensitive]` must be excluded from pattern analysis, concept matching, and cross-project signal detection. Read them only for their date presence (to count active days) but not their content. This prevents sensitive session data from leaking into reflect-log findings.
+
 ---
 
 ## Graph availability check (requires concepts CLI)
@@ -104,6 +110,10 @@ There is no reflect-context.json dependency. All graph queries run live against 
 ## Analysis passes
 
 Run each pass in sequence. Each pass is cheap (pattern match over structured text). Only the signal surfacing requires model reasoning.
+
+**Progress indication (manual invocation only):** When triggered manually via /reflect, output the pass name before starting each pass (e.g., "Pass 1: Stale detection...") so the user sees intermediate progress. When triggered via Stop hook, skip progress output since the user is not watching.
+
+**Pass ordering:** Passes run sequentially (1 through 6) but are logically independent. No pass reads the output of a previous pass. Each pass reads only the source files listed in "What /reflect reads" and the graph CLI. Sequential execution is for simplicity and predictable progress output, not for data dependency.
 
 ### Pass 1: Stale detection
 
@@ -124,7 +134,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 1. Collect all Friction Log entries from every project CLAUDE.md.
 2. For each unique friction description, count distinct date prefixes (each entry has a date prefix).
 3. If 3+ appearances: add to the report as "automation candidate".
-4. If 5+ appearances: write a task to the next daily note: "Build fix for: [friction description]".
+4. If 5+ appearances: escalate in the reflect-log with "URGENT: Build fix for: [friction description]" and recommend the user create a task. Do not write directly to the daily note (Constraint 2: /reflect never writes to daily notes).
 5. If fewer than 3 appearances: skip. One-off friction is noise. Three recurrences is a pattern. Five recurrences is a cost.
 
 ### Pass 3: Cross-project signal detection
@@ -133,9 +143,9 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 **Output:** 3-5 signal entries for the reflect-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
 
 **When $GRAPH_AVAILABLE is true**, query the graph directly instead of raw text matching:
-- Run `~/.cortex/concepts --json shared` for cross-project concepts (replaces pairwise concept comparison)
-- Run `~/.cortex/concepts --json hot` for concept velocity and trending patterns
-- Run `~/.cortex/concepts --json stale` as additional input for stale detection (supplement Pass 1)
+- Run `~/.cortex/concepts shared --json` for cross-project concepts (replaces pairwise concept comparison)
+- Run `~/.cortex/concepts hot --json` for concept velocity and trending patterns
+- Run `~/.cortex/concepts stale --json` as additional input for stale detection (supplement Pass 1)
 - Classify signals as before (OPPORTUNITY / RISK / CONVERGENCE) with higher confidence when backed by graph data with edge strength >= 2
 
 This is the second-brain pass. It requires model reasoning (string matching alone cannot detect conceptual overlap).
@@ -182,15 +192,15 @@ Examples of what this catches:
 **Input:** Live CLI queries (if $GRAPH_AVAILABLE is true). Skip this pass if CLI is not available.
 **Output:** A graph health section in the reflect-log entry.
 
-1. Run `~/.cortex/concepts --json graph` and report summary: N concepts, M edges, K projects, N normalization rules
-2. Run `~/.cortex/concepts --json velocity` and note extraction rate trends
+1. Run `~/.cortex/concepts graph --json` and report summary: N concepts, M edges, K projects, N normalization rules
+2. Run `~/.cortex/concepts velocity --json` and note extraction rate trends
 3. Flag any graph maturity metrics below threshold:
    - Fewer than 10 concepts
    - Fewer than 2 projects
    - No edges with strength >= 3
    - No cross-project concepts
-4. Run `~/.cortex/concepts --json hot` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
-5. Run `~/.cortex/concepts --json co-occurs <name>` for the top 3 hot concepts to surface structural similarity
+4. Run `~/.cortex/concepts hot --json` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
+5. Run `~/.cortex/concepts co-occurs --json <name>` for the top 3 hot concepts to surface structural similarity
 
 ---
 

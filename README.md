@@ -9,11 +9,28 @@
 
 </div>
 
-<br />
+## The problem
 
-Your AI starts every conversation from zero. Cortex gives it memory that grows from your actual work.
+Every AI coding tool forgets everything between sessions. The workaround is memory files, but those create a new problem: by month three you have duplicates, contradictions, and stale context piling up. Your AI reads all of it and none of it is reliable.
 
-Three skills and a CLI. No background processes, no magic.
+You spend time re-explaining decisions. Your AI misses that a pattern in one project solves a problem in another. An idea you mentioned three times never gets acted on because no one noticed the pattern.
+
+## What cortex does
+
+**`/save`** captures session learnings and routes them to the right place. **`/reflect`** reviews what has accumulated and surfaces patterns you would miss. **`/review`** triages signals weekly so concepts mature or get dismissed. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
+
+```
+  SESSION                    /save                      KNOWLEDGE GRAPH              /reflect
+  -------                    -----                      ---------------              --------
+
+  +------------+      +----------------+      +--------------------+      +-------------------+
+  | Decisions  |      | Daily notes    |      |   postgresql       |      | Stale: 3 entries  |
+  | Patterns   | ---> | Project context| ---> |     / | \         | ---> | Friction: 2 ready |
+  | Friction   |      | MEMORY.md      |      |  auth  pool  api  |      | Signals: 1 convg  |
+  | Concepts   |      | Learnings      |      |     \ | /         |      | Promote: 1 cand   |
+  +------------+      +----------------+      |    my-api         |      +-------------------+
+                        4 destinations         +--------------------+       6 analysis passes
+```
 
 ## Where cortex fits
 
@@ -32,27 +49,6 @@ There are three levels to getting AI memory right:
 **Connect.** Surface patterns across projects you would not notice yourself. Flag when a decision in one project contradicts an assumption in another. Catch the idea you mentioned three times but never acted on.
 
 Most tools stop at forget. Cortex picks up where cleanup ends. It runs alongside Auto Dream, not instead of it. Cleaning and connecting are different jobs.
-
-```
-  SESSION                    /save                      KNOWLEDGE GRAPH              /reflect
-  -------                    -----                      ---------------              --------
-
-  +------------+      +----------------+      +--------------------+      +-------------------+
-  | Decisions  |      | Daily notes    |      |   postgresql       |      | Stale: 3 entries  |
-  | Patterns   | ---> | Project context| ---> |     / | \         | ---> | Friction: 2 ready |
-  | Friction   |      | MEMORY.md      |      |  auth  pool  api  |      | Signals: 1 convg  |
-  | Concepts   |      | Learnings      |      |     \ | /         |      | Promote: 1 cand   |
-  +------------+      +----------------+      |    my-api         |      +-------------------+
-                        4 destinations         +--------------------+       5 analysis passes
-```
-
-## The problem
-
-Every AI tool that tries to remember you eventually drowns in its own notes. By month three your memory is full of duplicates, contradictions, and stale context. The AI that was supposed to know your work starts to feel like a colleague who has been on sabbatical for six months.
-
-## What cortex does
-
-**`/save`** captures session learnings and routes them to the right place. **`/reflect`** reviews what's accumulated and surfaces patterns you'd miss. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
 
 ## Install
 
@@ -111,7 +107,7 @@ Then it looks for signals: opportunities across projects, risk conflicts, conver
 
 ## What happens when you /reflect
 
-Run weekly or after heavy sessions. Five analysis passes over your accumulated memory:
+Run weekly or after heavy sessions. Six analysis passes over your accumulated memory, querying the knowledge graph directly:
 
 ```
 > /reflect
@@ -237,15 +233,6 @@ graph LR
 
 Each node is a **concept** with a kind and confidence level. Edges carry a **relation type** and **strength** that increments each time the relationship is reinforced across sessions. `retry-pattern` appearing in both `my-api` and `my-app` is the kind of cross-project signal `/reflect` surfaces.
 
-### Preparing graph data for /reflect
-
-```bash
-concepts reflect-prep              # Generate reflect-context.json
-concepts reflect-prep --verify     # Check if data is fresh
-```
-
-Run `reflect-prep` before `/reflect` to give it structured graph data. Without it, `/reflect` still works but relies on text matching instead of graph queries.
-
 ### Multi-agent access
 
 Subagents spawned within a Claude Code session inherit filesystem access and can query the graph directly:
@@ -289,7 +276,7 @@ LLM evals (requires Claude Code):
 ```bash
 cd evals
 python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
-python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_graph_evals.json --verbose
+python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_evals.json --verbose
 python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --verbose
 ```
 
@@ -311,7 +298,7 @@ python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --ve
 | `concepts correct <old> <new>` | Rename a concept |
 | `concepts undo-last` | Revert the last extraction |
 | `concepts verify` | Database integrity check |
-| `concepts reflect-prep` | Generate reflect-context.json |
+| `concepts reflect-prep` | Generate reflect-context.json (deprecated, /reflect queries CLI directly) |
 | `concepts review-summary` | List or create weekly summary snapshots |
 | `concepts promote <name> <level>` | Promote a concept to a higher confidence level |
 | `concepts dismiss <edge_id>` | Dismiss a false or noisy edge |

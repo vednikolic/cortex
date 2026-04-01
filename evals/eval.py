@@ -27,14 +27,22 @@ Rules:
 """
 
 
+def normalize_item(ev: dict) -> dict:
+    """Normalize JSON to canonical schema: id, check, category, weight."""
+    normalized = {}
+    normalized["id"] = ev.get("id") or ev.get("name", "unknown")
+    normalized["check"] = ev.get("check") or ev.get("prompt") or ev.get("question", "")
+    normalized["category"] = ev.get("category", "general")
+    normalized["weight"] = ev.get("weight", 1.0)
+    normalized["prd_ref"] = ev.get("prd_ref", "")
+    return normalized
+
+
 def load_evals(evals_path: str) -> list[dict]:
-    """Load eval definitions from JSON file."""
+    """Load definitions from JSON file. Normalizes all schema variants."""
     with open(evals_path, "r") as f:
-        evals = json.load(f)
-    for ev in evals:
-        if "weight" not in ev:
-            ev["weight"] = 1.0
-    return evals
+        items = json.load(f)
+    return [normalize_item(ev) for ev in items]
 
 
 def evaluate_single(document: str, eval_item: dict) -> dict:
@@ -106,6 +114,17 @@ def run_evals(document_path: str, evals_path: str, verbose: bool = False) -> dic
     composite_score = (passing_weight / total_weight * 100) if total_weight > 0 else 0
     passing_count = sum(1 for r in results if r["passed"])
 
+    # Constraint gate: if any constraint_gate category item fails, score is 0
+    constraint_gate_passed = True
+    constraint_failures = []
+    for r in results:
+        if r["category"] == "constraint_gate" and not r["passed"]:
+            constraint_gate_passed = False
+            constraint_failures.append(r["id"])
+
+    if not constraint_gate_passed:
+        composite_score = 0.0
+
     categories: dict[str, dict] = {}
     for r in results:
         cat = r["category"]
@@ -121,6 +140,8 @@ def run_evals(document_path: str, evals_path: str, verbose: bool = False) -> dic
         "composite_score": round(composite_score, 2),
         "passing": passing_count,
         "total": len(results),
+        "constraint_gate": constraint_gate_passed,
+        "constraint_failures": constraint_failures,
         "categories": categories,
         "results": results,
     }
@@ -133,6 +154,9 @@ def print_results(output: dict, fmt: str = "text"):
 
     print(f"composite_score: {output['composite_score']}")
     print(f"passing: {output['passing']}/{output['total']}")
+    if not output.get("constraint_gate", True):
+        print(f"CONSTRAINT GATE FAILED: {', '.join(output['constraint_failures'])}")
+        print("  Score forced to 0% -- fix constraint violations first")
     print()
     print("--- Category Breakdown ---")
     for cat, data in output["categories"].items():

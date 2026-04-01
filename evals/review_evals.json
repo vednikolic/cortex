@@ -1,62 +1,296 @@
 [
-  {
-    "name": "review_reads_reflect_log",
-    "question": "Does the /review skill instruct reading the reflect log for unreviewed entries?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_presents_promotion_eligible",
-    "question": "Does /review present concepts eligible for promotion with reasons and recommendations?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_supports_three_actions",
-    "question": "Does /review support exactly three triage actions: promote, dismiss, and defer?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_runs_confidence_decay",
-    "question": "Does /review run confidence decay after triage?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_creates_weekly_summary",
-    "question": "Does /review create a weekly summary snapshot in concepts.db via the CLI?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_writes_synthesis_file",
-    "question": "Does /review write a synthesis markdown file to the weekly directory?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_synthesis_has_delta",
-    "question": "Does the weekly synthesis include delta comparisons to the previous week (concepts, edges, projects)?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_reports_stale_concepts",
-    "question": "Does /review surface stale concepts (unreferenced 14+ days) for awareness?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_uses_absolute_paths",
-    "question": "Does /review use ~/.cortex/concepts (absolute path) for CLI invocations?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_never_auto_promotes",
-    "question": "Does /review require user confirmation before promoting concepts (never auto-promotes)?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_carries_forward_deferred",
-    "question": "Does /review track deferred items in the synthesis for carry-forward to next week?",
-    "expected": "YES"
-  },
-  {
-    "name": "review_report_includes_graph_status",
-    "question": "Does the /review report include current graph status (concepts, edges, projects) and weekly delta?",
-    "expected": "YES"
-  }
+    {
+        "id": "review_reads_reflect_log",
+        "category": "workflow",
+        "check": "Does the /review skill instruct reading the reflect log for unreviewed entries since the last weekly summary?",
+        "prd_ref": "phase3.review.signal_gathering",
+        "weight": 1.0
+    },
+    {
+        "id": "review_presents_promotion_eligible",
+        "category": "workflow",
+        "check": "Does /review present concepts eligible for promotion with current confidence, suggested level, and a recommendation to promote or defer?",
+        "prd_ref": "phase3.review.triage",
+        "weight": 1.0
+    },
+    {
+        "id": "review_supports_three_actions",
+        "category": "workflow",
+        "check": "Does /review support triage actions including promote, dismiss, and defer (or skip) for signals presented to the user?",
+        "prd_ref": "phase3.review.triage",
+        "weight": 1.0
+    },
+    {
+        "id": "review_runs_confidence_decay",
+        "category": "workflow",
+        "check": "Does /review run confidence decay after triage to catch concepts that have gone stale?",
+        "prd_ref": "phase3.confidence_lifecycle",
+        "weight": 1.0
+    },
+    {
+        "id": "review_creates_weekly_summary_db",
+        "category": "workflow",
+        "check": "Does /review create a weekly summary record in concepts.db via a CLI command like review-summary?",
+        "prd_ref": "phase3.weekly_summaries_table",
+        "weight": 1.0
+    },
+    {
+        "id": "review_writes_synthesis_file",
+        "category": "synthesis",
+        "check": "Does /review write a synthesis markdown file to a configurable weekly directory path?",
+        "prd_ref": "phase3.weekly_synthesis",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_what_moved",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis format include a 'What moved' or equivalent section showing actual progress across projects?",
+        "prd_ref": "phase3.weekly_synthesis.what_moved",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_patterns",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis format include a 'What the patterns say' or 'Patterns' section covering friction, convergence, and dormant signals?",
+        "prd_ref": "phase3.weekly_synthesis.patterns",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_graph_changes",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis include a section showing concept graph changes: new concepts, strengthened edges, and conflicting edges?",
+        "prd_ref": "phase3.weekly_synthesis.graph_changes",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_drift_check",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis include a drift check section comparing stated goals against actual work activity, listing goals with no work and overdue revisit decisions?",
+        "prd_ref": "phase3.weekly_synthesis.drift_check",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_carry_forward",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis include a carry-forward section listing unresolved signals from the reflect log or deferred items?",
+        "prd_ref": "phase3.weekly_synthesis.carry_forward",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_suggested_focus",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis include a suggested focus section with a recommendation for next week?",
+        "prd_ref": "phase3.weekly_synthesis.suggested_focus",
+        "weight": 1.0
+    },
+    {
+        "id": "synthesis_has_delta",
+        "category": "synthesis",
+        "check": "Does the weekly synthesis include delta comparisons to the previous week for concepts, edges, or projects?",
+        "prd_ref": "phase3.weekly_synthesis.graph_changes",
+        "weight": 1.0
+    },
+    {
+        "id": "review_reports_stale_concepts",
+        "category": "workflow",
+        "check": "Does /review surface stale concepts that have been unreferenced for 14 or more days for user awareness?",
+        "prd_ref": "phase3.confidence_lifecycle.decay",
+        "weight": 1.0
+    },
+    {
+        "id": "review_uses_absolute_paths",
+        "category": "portability",
+        "check": "Does /review use ~/.cortex/concepts (absolute tilde path) for all CLI invocations rather than relying on PATH?",
+        "prd_ref": "phase2.concepts_cli",
+        "weight": 1.0
+    },
+    {
+        "id": "review_reads_memory_config",
+        "category": "portability",
+        "check": "Does /review read .memory-config for path configuration with fallback defaults?",
+        "prd_ref": "phase1.memory_config",
+        "weight": 1.0
+    },
+    {
+        "id": "review_correction_queue_triage",
+        "category": "workflow",
+        "check": "Does /review read and triage entries from a correction queue file (such as correction-queue.json) that contains flagged concepts from the graph explorer?",
+        "prd_ref": "phase3.graph_correction_affordance",
+        "weight": 1.0
+    },
+    {
+        "id": "review_never_auto_promotes",
+        "category": "constraint_gate",
+        "check": "Does /review require explicit user confirmation before promoting concepts, never auto-promoting?",
+        "prd_ref": "phase3.review.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "review_report_includes_graph_status",
+        "category": "reporting",
+        "check": "Does the /review completion report include current graph status (concepts, edges, projects) and weekly change delta?",
+        "prd_ref": "phase3.review.reporting",
+        "weight": 1.0
+    },
+    {
+        "id": "review_carries_forward_deferred",
+        "category": "workflow",
+        "check": "Does /review track deferred items in the synthesis for carry-forward to the next week?",
+        "prd_ref": "phase3.weekly_synthesis.carry_forward",
+        "weight": 1.0
+    },
+    {
+        "id": "drift_check_compares_goals_vs_work",
+        "category": "specificity",
+        "check": "Does the drift check in the weekly synthesis specifically compare goals from a learnings or goals file against actual work activity in daily notes or graph changes?",
+        "prd_ref": "phase3.weekly_synthesis.drift_check",
+        "weight": 1.0
+    },
+    {
+        "id": "drift_check_revisit_decisions",
+        "category": "specificity",
+        "check": "Does the drift check identify decisions marked as revisit that are older than 14 days?",
+        "prd_ref": "phase3.weekly_synthesis.drift_check",
+        "weight": 1.0
+    },
+    {
+        "id": "correction_queue_clear_after_triage",
+        "category": "specificity",
+        "check": "Does /review specify clearing processed entries from the correction queue file after triage?",
+        "prd_ref": "phase3.graph_correction_affordance",
+        "weight": 1.0
+    },
+    {
+        "id": "review_gathers_four_signal_types",
+        "category": "specificity",
+        "check": "Does /review Step 2 gather at least four distinct types of signals (such as promotion-eligible, stale concepts, shared/cross-project concepts, and hot concepts) via separate CLI queries?",
+        "prd_ref": "phase3.review.signal_gathering",
+        "weight": 1.0
+    },
+    {
+        "id": "review_report_shows_corrections_count",
+        "category": "reporting",
+        "check": "Does the /review completion report include the count of corrections processed alongside promotions, dismissals, and deferrals?",
+        "prd_ref": "phase3.review.reporting",
+        "weight": 1.0
+    },
+    {
+        "id": "review_report_shows_drift",
+        "category": "reporting",
+        "check": "Does the /review completion report indicate when drift is detected between stated goals and actual work?",
+        "prd_ref": "phase3.review.reporting",
+        "weight": 1.0
+    },
+    {
+        "id": "review_handles_first_run",
+        "category": "edge_case",
+        "check": "Does /review specify different behavior or messaging for the first review (when there is no prior weekly summary to compare against for deltas)?",
+        "prd_ref": "phase3.review.first_run",
+        "weight": 1.0
+    },
+    {
+        "id": "review_handles_empty_reflect_log",
+        "category": "edge_case",
+        "check": "Does /review specify what happens if the reflect log has no entries or no unreviewed entries? Does it still produce a weekly synthesis?",
+        "prd_ref": "phase3.review.robustness",
+        "weight": 1.0
+    },
+    {
+        "id": "review_handles_missing_cli",
+        "category": "edge_case",
+        "check": "Does /review specify what happens if the concepts CLI (~/.cortex/concepts) is not installed or not available? Does it fail gracefully?",
+        "prd_ref": "phase2.concepts_cli.fallback",
+        "weight": 1.0
+    },
+    {
+        "id": "review_week_start_calculation",
+        "category": "specificity",
+        "check": "Does /review define how WEEK_START is calculated (e.g., Monday of the current week) so the weekly directory file naming is deterministic?",
+        "prd_ref": "phase3.review.synthesis",
+        "weight": 1.0
+    },
+    {
+        "id": "review_confidence_lifecycle_specifics",
+        "category": "specificity",
+        "check": "Does /review reference the confidence lifecycle thresholds: tentative to established (3+ sources or 2+ projects) and established to settled (strength >= 5 and age >= 30 days)?",
+        "prd_ref": "phase3.confidence_lifecycle",
+        "weight": 1.0
+    },
+    {
+        "id": "review_decay_specifics",
+        "category": "behavioral",
+        "check": "Does /review specify confidence decay thresholds: settled demotes to established after 90 days unreferenced, and established demotes to tentative after 60 days unreferenced, with tentative as the floor?",
+        "prd_ref": "phase3.confidence_lifecycle.decay",
+        "weight": 1.0
+    },
+    {
+        "id": "review_correction_actions_specific",
+        "category": "behavioral",
+        "check": "Does /review specify at least two concrete correction actions for queued items: rename (via concepts correct) and merge (via concepts merge)?",
+        "prd_ref": "phase3.graph_correction_affordance",
+        "weight": 1.0
+    },
+    {
+        "id": "review_synthesis_what_moved_scope",
+        "category": "behavioral",
+        "check": "Does the 'What moved' section of the synthesis specify that it should cover actual progress across projects (not just graph statistics)?",
+        "prd_ref": "phase3.weekly_synthesis.what_moved",
+        "weight": 1.0
+    },
+    {
+        "id": "review_weekly_dir_creation",
+        "category": "edge_case",
+        "check": "Does /review handle the case where the weekly directory ($WEEKLY_DIR) does not yet exist, either by creating it or by specifying the expected behavior?",
+        "prd_ref": "phase3.review.synthesis",
+        "weight": 1.0
+    },
+    {
+        "id": "review_stale_in_synthesis",
+        "category": "behavioral",
+        "check": "Does the weekly synthesis include stale concepts in the carry-forward or a dedicated section for awareness, rather than only listing them during interactive triage?",
+        "prd_ref": "phase3.weekly_synthesis",
+        "weight": 1.0
+    },
+    {
+        "id": "review_idempotent_weekly",
+        "category": "adversarial",
+        "check": "If /review is run twice in the same week, does the document address whether it overwrites the existing synthesis file or appends? Is the behavior deterministic?",
+        "prd_ref": "phase3.review.robustness",
+        "weight": 1.0
+    },
+    {
+        "id": "review_no_graph_writes_without_confirmation",
+        "category": "adversarial",
+        "check": "Does /review ensure that all graph modifications (promotions, dismissals, corrections) require explicit user confirmation before executing CLI commands that change concepts.db?",
+        "prd_ref": "phase3.review.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "review_synthesis_persists_to_db",
+        "category": "adversarial",
+        "check": "Does /review write the weekly summary to BOTH a markdown file ($WEEKLY_DIR) and concepts.db (via review-summary CLI), not just one destination?",
+        "prd_ref": "phase3.weekly_summaries_table",
+        "weight": 1.0
+    },
+    {
+        "id": "review_distinguishes_promote_vs_dismiss_targets",
+        "category": "adversarial",
+        "check": "Does /review clearly distinguish which signals can be promoted (concepts) versus dismissed (edges) versus deferred (any signal type)? Are the CLI commands for each action different?",
+        "prd_ref": "phase3.review.triage",
+        "weight": 1.0
+    },
+    {
+        "id": "review_no_auto_concept_creation",
+        "category": "constraint_gate",
+        "check": "Does /review never create new concepts in the graph? It should only promote, dismiss, decay, or correct existing concepts, not add new ones.",
+        "prd_ref": "phase3.review.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "review_uses_reflect_not_dream",
+        "category": "adversarial",
+        "check": "Does /review consistently reference 'reflect' (not 'dream') when referring to the consolidation log or the companion skill?",
+        "prd_ref": "phase3b.reflect_rename",
+        "weight": 1.0
+    }
 ]

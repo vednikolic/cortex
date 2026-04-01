@@ -3,96 +3,329 @@
         "id": "has_configuration_section",
         "category": "structure",
         "check": "Does the document contain a Configuration section that defines variables read from .memory-config with specific config keys and default values?",
+        "prd_ref": "phase1.memory_config",
         "weight": 1.0
     },
     {
         "id": "has_analysis_passes",
         "category": "structure",
         "check": "Does the document define multiple distinct analysis passes (at least 4), each with a clear name, defined inputs, and defined outputs?",
-        "weight": 1.5
+        "prd_ref": "phase3.reflect.analysis_passes",
+        "weight": 1.0
     },
     {
         "id": "has_output_template",
         "category": "structure",
         "check": "Does the document include a structured output template showing the exact format of reflect-log.md entries with section headings for different finding types?",
+        "prd_ref": "phase3.reflect.output_format",
         "weight": 1.0
     },
     {
         "id": "has_trigger_logic",
         "category": "structure",
         "check": "Does the document describe at least two trigger modes (automatic and manual) with specific conditions for when each fires?",
+        "prd_ref": "phase2b.hook_scripts",
         "weight": 1.0
     },
     {
         "id": "stale_detection_defined",
         "category": "analysis",
         "check": "Does the document define a stale detection pass that searches for entries not referenced in recent daily notes, with a specific time window (e.g., 7 days)?",
+        "prd_ref": "phase3.reflect.stale_detection",
         "weight": 1.0
     },
     {
         "id": "friction_promotion_defined",
         "category": "analysis",
-        "check": "Does the document define a friction promotion pass with specific recurrence thresholds (e.g., 3+ appearances for escalation)?",
+        "check": "Does the document define a friction promotion pass that counts recurrences of friction entries and uses a numeric threshold (such as 3 or more appearances) to decide when to escalate?",
+        "prd_ref": "phase3.reflect.friction_promotion",
         "weight": 1.0
     },
     {
         "id": "cross_project_signals_defined",
         "category": "analysis",
         "check": "Does the document define cross-project signal detection that compares concepts across project CLAUDE.md files and classifies findings into categories (e.g., opportunity, risk, convergence)?",
-        "weight": 1.5
+        "prd_ref": "phase3.reflect.cross_project",
+        "weight": 1.0
     },
     {
         "id": "promotion_queue_review",
         "category": "analysis",
         "check": "Does the document include a pass that reviews the MEMORY.md promotion queue and checks for continued relevance of queued items?",
+        "prd_ref": "phase3.reflect.promotion_queue",
         "weight": 1.0
     },
     {
         "id": "dormant_signal_detection",
         "category": "analysis",
         "check": "Does the document include a pass that detects dormant ideas or stagnant goals by comparing stated interests against recent activity?",
-        "weight": 0.5
+        "prd_ref": "phase3.reflect.dormant_signals",
+        "weight": 1.0
+    },
+    {
+        "id": "graph_availability_check",
+        "category": "integration",
+        "check": "Does the document describe checking whether the concepts CLI is available (e.g., running ~/.cortex/concepts --version) and setting a flag like $GRAPH_AVAILABLE before analysis passes?",
+        "prd_ref": "phase2.concepts_cli",
+        "weight": 1.0
+    },
+    {
+        "id": "live_cli_queries_in_pass3",
+        "category": "integration",
+        "check": "Does the document specify running live CLI queries (such as concepts shared, concepts hot, or concepts stale) during cross-project signal detection, rather than reading a static JSON file?",
+        "prd_ref": "phase3b.live_cli_migration",
+        "weight": 1.0
+    },
+    {
+        "id": "graph_health_pass",
+        "category": "integration",
+        "check": "Does the document include a graph health pass that reports concept count, edge count, project count, and flags maturity metrics below threshold?",
+        "prd_ref": "phase3.reflect.graph_health",
+        "weight": 1.0
+    },
+    {
+        "id": "graceful_degradation_without_cli",
+        "category": "integration",
+        "check": "Does the document specify that if the concepts CLI is not available, /reflect continues with text-only analysis without errors, skipping graph-dependent passes?",
+        "prd_ref": "phase2.concepts_cli",
+        "weight": 1.0
+    },
+    {
+        "id": "trust_calibration",
+        "category": "integration",
+        "check": "Does the document respect trust calibration by only surfacing graph-backed signals when edge strength >= 2 or concept confidence is established or higher?",
+        "prd_ref": "phase2.trust_calibration",
+        "weight": 1.0
+    },
+    {
+        "id": "handoff_to_review",
+        "category": "pipeline",
+        "check": "Does the document specify that after writing the reflect-log entry, if unreviewed signals exist, it should prompt the user to run /review to triage pending signals?",
+        "prd_ref": "phase3.reflect_review_pipeline",
+        "weight": 1.0
     },
     {
         "id": "never_writes_memory",
-        "category": "constraints",
+        "category": "constraint_gate",
         "check": "Does the document explicitly state that /reflect never writes to MEMORY.md, only to reflect-log.md?",
-        "weight": 1.5
+        "prd_ref": "phase1.reflect.constraints",
+        "weight": 1.0
     },
     {
         "id": "never_auto_promotes",
-        "category": "constraints",
+        "category": "constraint_gate",
         "check": "Does the document explicitly state that /reflect never auto-promotes entries to CLAUDE.md and always requires human review?",
+        "prd_ref": "phase1.reflect.constraints",
         "weight": 1.0
     },
     {
         "id": "never_deletes",
-        "category": "constraints",
+        "category": "constraint_gate",
         "check": "Does the document explicitly state that /reflect never deletes stale entries, only flags them?",
+        "prd_ref": "phase1.reflect.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "append_only_output",
+        "category": "constraint_gate",
+        "check": "Does the document specify that reflect-log.md is append-only (new entries are appended, old entries are never modified or removed)?",
+        "prd_ref": "phase1.reflect.constraints",
         "weight": 1.0
     },
     {
         "id": "config_fallback_to_defaults",
         "category": "portability",
         "check": "Does the document explicitly state that if .memory-config is absent, PARA default paths are used as fallbacks?",
+        "prd_ref": "phase1.memory_config",
         "weight": 1.0
     },
     {
         "id": "paths_use_variables",
         "category": "portability",
         "check": "Does the document use configurable path variables (like $DAILY_DIR, $LEARNINGS, $REFLECT_LOG, $PROJECT_ROOT) rather than hardcoded directory paths in the analysis instructions?",
+        "prd_ref": "phase1.memory_config",
         "weight": 1.0
     },
     {
         "id": "reads_defined_sources",
         "category": "completeness",
         "check": "Does the document explicitly list all files/sources that /reflect reads (MEMORY.md, reflect-log, learnings, daily notes, project CLAUDE.md files) with specific paths or path patterns?",
+        "prd_ref": "phase1.reflect.inputs",
         "weight": 1.0
     },
     {
-        "id": "append_only_output",
-        "category": "constraints",
-        "check": "Does the document specify that reflect-log.md is append-only (new entries are appended, old entries are never modified or removed)?",
-        "weight": 0.5
+        "id": "progress_indication_manual",
+        "category": "usability",
+        "check": "Does the document instruct outputting the current pass name or progress during manual invocation so the user sees intermediate feedback?",
+        "prd_ref": "phase3.reflect.manual_invocation",
+        "weight": 1.0
+    },
+    {
+        "id": "friction_threshold_specificity",
+        "category": "specificity",
+        "check": "Does the friction promotion pass specify two distinct numeric thresholds: one for 'automation candidate' (3+ appearances) and a higher urgency escalation at 5+ appearances?",
+        "prd_ref": "phase3.reflect.friction_promotion",
+        "weight": 1.0
+    },
+    {
+        "id": "stale_revisit_threshold",
+        "category": "specificity",
+        "check": "Does the stale detection pass specify that Decision Register entries tagged [revisit] should be flagged as overdue if older than 14 days?",
+        "prd_ref": "phase3.reflect.stale_detection",
+        "weight": 1.0
+    },
+    {
+        "id": "cross_project_signal_count_cap",
+        "category": "specificity",
+        "check": "Does the cross-project signal detection pass specify writing exactly 3 to 5 signal entries, with a ranking mechanism if more than 5 candidates exist?",
+        "prd_ref": "phase3.reflect.cross_project",
+        "weight": 1.0
+    },
+    {
+        "id": "graph_health_maturity_thresholds",
+        "category": "specificity",
+        "check": "Does the graph health pass define at least 3 specific maturity thresholds (such as fewer than 10 concepts, fewer than 2 projects, no edges with strength >= 3)?",
+        "prd_ref": "phase3.reflect.graph_health",
+        "weight": 1.0
+    },
+    {
+        "id": "never_analyzes_code",
+        "category": "constraint_gate",
+        "check": "Does the document explicitly state that /reflect never analyzes code directly, only memory files that describe code decisions?",
+        "prd_ref": "phase1.reflect.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "never_reads_transcripts",
+        "category": "constraint_gate",
+        "check": "Does the document explicitly state that /reflect never reads full session transcripts?",
+        "prd_ref": "phase1.reflect.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "timestamp_update_after_write",
+        "category": "completeness",
+        "check": "Does the document specify updating a timestamp file (such as reflect-last-run) after writing the reflect-log entry?",
+        "prd_ref": "phase2b.hook_scripts",
+        "weight": 1.0
+    },
+    {
+        "id": "gate_script_turn_threshold",
+        "category": "specificity",
+        "check": "Does the automatic trigger gate script specify a minimum turn count threshold (such as 15 turns) for firing a reflect pass?",
+        "prd_ref": "phase2b.hook_scripts",
+        "weight": 1.0
+    },
+    {
+        "id": "handles_empty_daily_notes",
+        "category": "edge_case",
+        "check": "Does the document specify what happens when fewer than 7 daily notes exist (e.g., a new user with only 1-2 days of notes)? Does it handle this gracefully rather than failing?",
+        "prd_ref": "phase1.reflect.robustness",
+        "weight": 1.0
+    },
+    {
+        "id": "handles_missing_promotion_queue",
+        "category": "edge_case",
+        "check": "Does the document specify what Pass 4 (promotion queue review) should do if MEMORY.md has no Promotion Queue section? Should it skip the pass or produce empty output?",
+        "prd_ref": "phase1.reflect.robustness",
+        "weight": 1.0
+    },
+    {
+        "id": "handles_no_project_claude_files",
+        "category": "edge_case",
+        "check": "Does the document address what happens if no project CLAUDE.md files exist under $PROJECT_ROOT (e.g., a fresh workspace with no projects)?",
+        "prd_ref": "phase1.reflect.robustness",
+        "weight": 1.0
+    },
+    {
+        "id": "deduplication_across_runs",
+        "category": "edge_case",
+        "check": "Does the document specify reading the last reflect-log entry to avoid duplicating findings that were already surfaced in a previous reflect run?",
+        "prd_ref": "phase3.reflect.deduplication",
+        "weight": 1.0
+    },
+    {
+        "id": "sensitive_session_exclusion",
+        "category": "edge_case",
+        "check": "Does the document address how to handle daily note entries tagged [sensitive], such as excluding them from pattern analysis or concept matching?",
+        "prd_ref": "phase2.sensitive_session",
+        "weight": 1.0
+    },
+    {
+        "id": "friction_writes_task_at_5",
+        "category": "behavioral",
+        "check": "Does Pass 2 (friction promotion) specify that at 5+ appearances, the friction is escalated beyond 'automation candidate' (e.g., marked as urgent, recommended for immediate action, or surfaced with higher priority in the reflect-log)?",
+        "prd_ref": "phase3.reflect.friction_promotion",
+        "weight": 1.0
+    },
+    {
+        "id": "promotion_queue_3x_threshold",
+        "category": "behavioral",
+        "check": "Does Pass 4 specify that a promotion candidate is surfaced as 'ready for root CLAUDE.md' only when it is both still relevant AND has appeared 3 or more times total?",
+        "prd_ref": "phase3.reflect.promotion_queue",
+        "weight": 1.0
+    },
+    {
+        "id": "dormant_uses_14_day_window",
+        "category": "behavioral",
+        "check": "Does Pass 5 (dormant signal detection) use a 14-day window for daily notes (not 7 days like stale detection), and does it distinguish between dormant ideas (mentioned but not acted on) and stagnant goals (in learnings but no work log entries)?",
+        "prd_ref": "phase3.reflect.dormant_signals",
+        "weight": 1.0
+    },
+    {
+        "id": "output_one_line_per_entry",
+        "category": "behavioral",
+        "check": "Does the output format section specify that each entry in the reflect-log should be kept to one line, explicitly stating the log is a feed not a document?",
+        "prd_ref": "phase3.reflect.output_format",
+        "weight": 1.0
+    },
+    {
+        "id": "co_occurs_query_for_hot_concepts",
+        "category": "behavioral",
+        "check": "Does Pass 6 (graph health) specify running a co-occurs query for the top 3 hot concepts to surface structural similarity?",
+        "prd_ref": "phase3.reflect.graph_health",
+        "weight": 1.0
+    },
+    {
+        "id": "no_reflect_context_json_dependency",
+        "category": "constraint_gate",
+        "check": "Does the document confirm there is NO dependency on a static reflect-context.json file, and that all graph queries run live via the CLI?",
+        "prd_ref": "phase3b.live_cli_migration",
+        "weight": 1.0
+    },
+    {
+        "id": "no_dream_references",
+        "category": "adversarial",
+        "check": "Does the document consistently use the name 'reflect' (not 'dream') for this skill throughout? The skill was renamed from /dream to /reflect.",
+        "prd_ref": "phase3b.reflect_rename",
+        "weight": 1.0
+    },
+    {
+        "id": "constraint_5_vs_pass2_contradiction",
+        "category": "adversarial",
+        "check": "Does the document ensure that Pass 2 (friction promotion) at 5+ appearances does NOT write directly to daily notes, consistent with the constraint that /reflect never writes to daily notes? The escalation at 5+ should be handled within the reflect-log output, not by writing to external files.",
+        "prd_ref": "phase3.reflect.constraints",
+        "weight": 1.0
+    },
+    {
+        "id": "hook_script_cross_platform",
+        "category": "adversarial",
+        "check": "Does the reflect-surface.sh hook script handle the difference between macOS stat (stat -f %m) and Linux stat (stat -c %Y) for getting file modification time?",
+        "prd_ref": "phase2b.hook_scripts",
+        "weight": 1.0
+    },
+    {
+        "id": "reflect_log_parsable_format",
+        "category": "adversarial",
+        "check": "Does the reflect-log output format use a machine-parsable header (such as '## Reflect -- YYYY-MM-DD HH:MM [trigger: ...]') that the companion SessionStart hook can reliably extract using the awk pattern shown?",
+        "prd_ref": "phase3.reflect.output_format",
+        "weight": 1.0
+    },
+    {
+        "id": "pass_ordering_independence",
+        "category": "adversarial",
+        "check": "Does the document explicitly state that the analysis passes run sequentially and are logically independent (no pass reads the output of a previous pass)?",
+        "prd_ref": "phase3.reflect.analysis_passes",
+        "weight": 1.0
     }
 ]

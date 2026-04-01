@@ -18,18 +18,26 @@ Review accumulated signals and make decisions. Promotes concepts that have earne
 
 ### Step 1: Load context
 
-Read `.memory-config` for path configuration. Set variables:
+Read `.memory-config` from the workspace root (same directory as `.claude/`). Parse as simple `key: value` pairs (one per line, ignore comments starting with `#`). If the file does not exist, use defaults below.
 
 ```
 REFLECT_LOG: path from reflect_log config key (default: 2-areas/me/reflect-log.md)
 WEEKLY_DIR: path from weekly_dir config key (default: 2-areas/me/weekly)
+LEARNINGS: path from learnings config key (default: 2-areas/me/learnings.md)
+PROJECT_ROOT: path from project_root config key (default: 1-projects)
 TODAY: current date (YYYY-MM-DD)
 WEEK_START: Monday of this week (YYYY-MM-DD)
 ```
 
 ### Step 2: Gather pending signals
 
-Run the following to collect all signals needing triage:
+First, check if the concepts CLI is available by running `~/.cortex/concepts --version`. If the CLI is not installed:
+- Skip all CLI-dependent queries (confidence-check, stale, shared, hot, confidence-check --decay, review-summary)
+- Still read the reflect log, correction queue, and learnings
+- Still produce a weekly synthesis from reflect-log signals and learnings-based drift check
+- Note in the report: "Graph CLI not available. Synthesis based on reflect-log and learnings only."
+
+If the CLI is available, run:
 
 ```bash
 ~/.cortex/concepts confidence-check --json
@@ -38,7 +46,15 @@ Run the following to collect all signals needing triage:
 ~/.cortex/concepts hot --limit 10 --json
 ```
 
-Also read the reflect log (`$REFLECT_LOG`) for any unreviewed entries since the last weekly summary. An entry is "unreviewed" if it was written after the most recent `weekly_summaries` row.
+**Confidence lifecycle thresholds** for interpreting promotion eligibility:
+- Tentative to established: concept has 3+ sources OR appears in 2+ projects
+- Established to settled: edge strength >= 5 AND concept age >= 30 days, OR manually promoted by user
+- Decay (checked in Step 4): settled demotes to established after 90 days unreferenced; established demotes to tentative after 60 days unreferenced. Tentative is the floor; nothing is deleted by decay.
+
+Also read:
+- The reflect log (`$REFLECT_LOG`) for any unreviewed entries since the last weekly summary. An entry is "unreviewed" if it was written after the most recent `weekly_summaries` row. If the reflect log does not exist or has no entries, skip reflect-log signal triage but still proceed with CLI signals, correction queue, and synthesis generation. A review with zero reflect-log entries is valid (the graph data alone provides signal).
+- The correction queue at `~/.claude/memory/correction-queue.json` if it exists. This contains concepts flagged as incorrect via the graph explorer's "Flag as incorrect" button.
+- `$LEARNINGS` for stated goals (used in drift check).
 
 ### Step 3: Present signals for triage
 
@@ -70,6 +86,19 @@ For shared concepts, surface:
 
 Note findings in the weekly synthesis.
 
+**Correction queue:**
+If `~/.claude/memory/correction-queue.json` exists and has entries, present each:
+- Concept name, what was flagged, when it was flagged
+- Your recommendation: accept correction (rename/merge/remove), or dismiss
+
+For accepted corrections:
+```bash
+~/.cortex/concepts correct "$name" --rename "$new_name"
+~/.cortex/concepts merge "$source" "$target"
+```
+
+After triage, clear processed entries from the queue file.
+
 **Reflect log signals:**
 For unreviewed reflect entries, present:
 - The finding text
@@ -98,34 +127,45 @@ Create the weekly summary snapshot:
 ~/.cortex/concepts review-summary --create $WEEK_START --json
 ```
 
+If `$WEEKLY_DIR` does not exist, create it before writing.
+
+**Idempotency:** If `$WEEKLY_DIR/$WEEK_START.md` already exists (review run twice in the same week), overwrite it with the new synthesis. The most recent triage decisions take precedence. The concepts.db `review-summary` row is also upserted (not duplicated) for the same week.
+
 Then write a synthesis markdown file to `$WEEKLY_DIR/$WEEK_START.md`:
 
 ```markdown
 # Week of YYYY-MM-DD
 
-## Graph this week
+## What moved
+[2-3 sentences on actual progress across projects, based on reflect log entries and graph changes]
+
+## What the patterns say
+[2-3 sentences on what friction, convergence, and dormant signals imply]
+
+## Concept graph changes
 - Concepts: N (+/-delta from last week)
 - Edges: M (+/-delta)
 - Projects: K
-
-## Velocity
-- N concepts/week (4-week average)
-
-## Decisions made
+- Velocity: N concepts/week (4-week average)
+- New: [concepts added this week]
+- Strengthened: [edges that increased in strength]
+- Conflicting: [any new conflict edges]
 - Promoted: [list of promoted concepts with new level]
 - Dismissed: [list of dismissed edges]
-- Deferred: [list of deferred items]
 - Demoted by decay: [list of decayed concepts]
 
-## Patterns
-- [Cross-project patterns from shared concepts]
-- [Friction patterns from reflect log]
+## Drift check
+- Goals with no work this week: [compare stated goals from $LEARNINGS against recent daily notes and graph activity]
+- Decisions marked revisit older than 14 days: [from project CLAUDE.md Decision Registers]
 
-## Stale concepts
-- [Concepts unreferenced 14+ days, for awareness]
+## Carry-forward signals
+- [1-3 unresolved signals from reflect log]
+- [Deferred items from this triage that need attention next week]
+- Stale concepts: [concepts unreferenced 14+ days, for awareness]
+- Corrections pending: [any remaining correction-queue items not triaged]
 
-## Carry-forward
-- [Deferred items that need attention next week]
+## Suggested focus
+[1-2 sentence recommendation for next week based on patterns, drift, and carry-forward]
 ```
 
 ### Step 6: Report
@@ -138,12 +178,14 @@ Triage:
   Dismissed: M edges
   Deferred: K items
   Decayed: J concepts
+  Corrections: C processed
 
 Weekly synthesis written to $WEEKLY_DIR/$WEEK_START.md
 
 Graph: X concepts, Y edges, Z projects
   This week: +A concepts, +B edges
 
+[If drift detected]: Drift check found G goals with no activity this week.
 [If first review]: Your first weekly review. Run /review weekly to track concept evolution.
 [If 4+ reviews]: You have N weeks of synthesis data. Concept evolution is visible in $WEEKLY_DIR/.
 ```
