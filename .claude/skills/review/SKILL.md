@@ -83,7 +83,14 @@ Recommend defer:
    Deferring: Wait for a second project reference or continued usage before promoting.
 ```
 
-After presenting, ask: "Promote N-N, defer N-N? Or adjustments?" The user can respond with numbers.
+**Default behavior: auto-promote.** Concepts that cross the threshold are promoted automatically. Present the numbered list as a report of what was promoted and what was deferred, not as a question. End with:
+
+```
+Promoted 1-N automatically. Deferred M-K (reasons above).
+Tip: To undo a promotion, run `concepts correct <name>` or tell me to demote any concept by number.
+```
+
+The user can adjust after the fact ("demote 3", "also promote 12") but does not need to approve each one. This keeps the review fast. The thresholds are conservative enough that auto-promotion is safe: 3+ independent sources or 2+ projects is a high bar.
 
 For confirmed promotions:
 ```bash

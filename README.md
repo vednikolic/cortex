@@ -158,8 +158,8 @@ Promotion eligible (5 concepts):
      Why listed: 2 sources, but single-project and not referenced in 14 days.
      Deferring: Wait for a second project reference or continued usage.
 
-Promote 1-2, defer 3? Or adjustments?
-> promote 1-2, defer 3
+Promoted 1-2 automatically. Deferred 3 (single-project, no recent references).
+Tip: To undo a promotion, run `concepts correct <name>` or tell me to demote any by number.
 
 Stale (1):
   "feature-flag-rollout" -- not referenced in 21 days
@@ -167,7 +167,7 @@ Stale (1):
 Review complete.
 
 Triage:
-  Promoted: 2 concepts
+  Promoted: 2 concepts (auto)
   Dismissed: 0 edges
   Deferred: 1 item
 
@@ -235,7 +235,7 @@ Not every concept is equally important. Something you mention once might be nois
 | **Established** | Keeps showing up. This is a real part of your work. | Resists stale detection longer (90 days). Gets higher priority in /reflect cross-project signals |
 | **Settled** | Foundational. Shapes how your projects connect. | Strongest resistance to decay. Highest priority in context injection and signal detection |
 
-`/review` suggests promotions when a concept earns them (3+ sources, or appears in 2+ projects). You decide. Nothing promotes automatically.
+`/review` automatically promotes concepts that cross the threshold (3+ sources, or appears in 2+ projects). You see what was promoted and can adjust, demote, or dismiss anything you disagree with. The defaults are conservative enough that auto-promotion is safe, and you always have the final say.
 
 Why this matters: without confidence levels, your AI treats a concept you mentioned once the same as one that connects five projects. Promotion is how you tell the graph "this is real, pay attention to it." Over time, the settled concepts become the backbone of your knowledge graph, and the tentative ones fade naturally if they stop being relevant.
 
