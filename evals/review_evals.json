@@ -292,5 +292,12 @@
         "check": "Does /review consistently reference 'reflect' (not 'dream') when referring to the consolidation log or the companion skill?",
         "prd_ref": "phase3b.reflect_rename",
         "weight": 1.0
+    },
+    {
+        "id": "review_auto_promotes_by_default",
+        "category": "behavioral",
+        "check": "Does /review auto-promote eligible concepts without waiting for user confirmation, present a numbered report with structured explanations (what, why listed, effect), and offer a tip for how to adjust or undo promotions after the fact?",
+        "prd_ref": "phase3c.auto_promote",
+        "weight": 1.0
     }
 ]
