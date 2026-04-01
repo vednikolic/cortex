@@ -138,19 +138,38 @@ Run weekly. Triages accumulated signals and generates a synthesis snapshot:
 ```
 > /review
 
-Promotion eligible:
-  python (tentative -> established): 5 sources, 3 projects
-  Recommend: promote (high-confidence cross-project concept)
+Promotion eligible (5 concepts):
 
-Stale (2):
-  "redis-caching" -- not referenced in 18 days
+  Recommend promote:
+  1. postgresql (5 sources, 3 projects)
+     What: Your most-used database tool across my-api, my-app, and admin-dashboard.
+     Why listed: 3+ sources AND 2+ projects. High-confidence cross-project concept.
+     Promoting it: /reflect will prioritize postgresql connections in cross-project
+     signals. It resists stale detection for 90 days instead of 60.
+
+  2. retry-pattern (3 sources, 2 projects)
+     What: Error handling pattern used in my-api and my-app.
+     Why listed: Appears in 2 projects with 3 independent sources.
+     Promoting it: Strengthens the signal that both projects share this need.
+
+  Recommend defer:
+  3. redis-caching (2 sources, 1 project)
+     What: Caching layer discussed in my-api only.
+     Why listed: 2 sources, but single-project and not referenced in 14 days.
+     Deferring: Wait for a second project reference or continued usage.
+
+Promote 1-2, defer 3? Or adjustments?
+> promote 1-2, defer 3
+
+Stale (1):
+  "feature-flag-rollout" -- not referenced in 21 days
 
 Review complete.
 
 Triage:
   Promoted: 2 concepts
-  Dismissed: 1 edge
-  Deferred: 3 items
+  Dismissed: 0 edges
+  Deferred: 1 item
 
 Weekly synthesis written to 2-areas/me/weekly/2026-03-24.md
 
@@ -205,6 +224,20 @@ concepts merge "js" "javascript"
 3. Heavier sessions extract more concepts (up to 8). Light sessions extract fewer (up to 3)
 4. Canonicalization prevents duplicates: "k8s" matches "kubernetes", "pytohn" matches "python"
 5. Over time, the graph reveals which concepts connect your projects, which are going stale, and where patterns repeat
+
+### How concepts mature
+
+Not every concept is equally important. Something you mention once might be noise. Something that shows up across three projects over two months is foundational. Cortex tracks this with three confidence levels:
+
+| Level | What it means | What it does |
+|---|---|---|
+| **Tentative** | Seen once or twice. Might be noise, might be real. | Default for new concepts. Gets flagged as stale after 60 days without references |
+| **Established** | Keeps showing up. This is a real part of your work. | Resists stale detection longer (90 days). Gets higher priority in /reflect cross-project signals |
+| **Settled** | Foundational. Shapes how your projects connect. | Strongest resistance to decay. Highest priority in context injection and signal detection |
+
+`/review` suggests promotions when a concept earns them (3+ sources, or appears in 2+ projects). You decide. Nothing promotes automatically.
+
+Why this matters: without confidence levels, your AI treats a concept you mentioned once the same as one that connects five projects. Promotion is how you tell the graph "this is real, pay attention to it." Over time, the settled concepts become the backbone of your knowledge graph, and the tentative ones fade naturally if they stop being relevant.
 
 ### What the graph looks like
 

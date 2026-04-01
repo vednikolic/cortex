@@ -61,11 +61,29 @@ Also read:
 Present each signal category to the user with recommended actions:
 
 **Promotion eligible:**
-For each concept eligible for promotion (from Step 2), show:
-- Concept name, current confidence, suggested level, and reason
-- Your recommendation: promote or defer (with reasoning)
+Present promotions as a numbered list, grouped into "Recommend promote" and "Recommend defer." For each concept, show four lines:
 
-Ask the user to confirm each: promote, defer, or skip.
+1. **Name and stats**: concept name, source count, project count
+2. **What**: one sentence describing what this concept represents in the user's work
+3. **Why listed**: which threshold it crossed (3+ sources, 2+ projects, or both) and what makes it significant
+4. **Promoting it / Deferring it**: one sentence on the concrete effect. For promotions: what changes (e.g., "resists stale detection for 90 days instead of 60, gets higher priority in /reflect cross-project signals"). For deferrals: why waiting is better (e.g., "single-project, wait for a second project reference")
+
+Example format:
+```
+Recommend promote:
+1. postgresql (5 sources, 3 projects)
+   What: Your most-used database tool across my-api, my-app, and admin-dashboard.
+   Why listed: 3+ sources AND 2+ projects. High-confidence cross-project concept.
+   Promoting it: Gets higher priority in /reflect signals. Resists stale detection for 90 days instead of 60.
+
+Recommend defer:
+3. redis-caching (2 sources, 1 project)
+   What: Caching layer discussed in my-api only.
+   Why listed: 2 sources meets minimum, but single-project and not referenced recently.
+   Deferring: Wait for a second project reference or continued usage before promoting.
+```
+
+After presenting, ask: "Promote N-N, defer N-N? Or adjustments?" The user can respond with numbers.
 
 For confirmed promotions:
 ```bash
