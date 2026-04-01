@@ -20,16 +20,16 @@ You spend time re-explaining decisions. Your AI misses that a pattern in one pro
 **`/save`** captures session learnings and routes them to the right place. **`/reflect`** reviews what has accumulated and surfaces patterns you would miss. **`/review`** triages signals weekly so concepts mature or get dismissed. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
 
 ```
-  SESSION                    /save                      KNOWLEDGE GRAPH              /reflect
-  -------                    -----                      ---------------              --------
+  SESSION            /save             KNOWLEDGE GRAPH        /reflect           /review
+  -------            -----             ---------------        --------           -------
 
-  +------------+      +----------------+      +--------------------+      +-------------------+
-  | Decisions  |      | Daily notes    |      |   postgresql       |      | Stale: 3 entries  |
-  | Patterns   | ---> | Project context| ---> |     / | \         | ---> | Friction: 2 ready |
-  | Friction   |      | MEMORY.md      |      |  auth  pool  api  |      | Signals: 1 convg  |
-  | Concepts   |      | Learnings      |      |     \ | /         |      | Promote: 1 cand   |
-  +------------+      +----------------+      |    my-api         |      +-------------------+
-                        4 destinations         +--------------------+       6 analysis passes
+  +----------+   +--------------+   +------------------+   +-----------------+   +-----------------+
+  | Decisions|   | Daily notes  |   |   postgresql     |   | Stale: 3 entries|   | Promoted: 4     |
+  | Patterns | > | Project ctx  | > |     / | \        | > | Friction: 2     | > | Dismissed: 1    |
+  | Friction |   | MEMORY.md    |   |  auth  pool  api |   | Signals: 1      |   | Decayed: 0      |
+  | Concepts |   | Learnings    |   |     \ | /        |   | Promote: 1 cand |   | Weekly synthesis |
+  +----------+   +--------------+   |    my-api        |   +-----------------+   +-----------------+
+                  4 destinations     +------------------+    6 analysis passes    weekly triage
 ```
 
 ## Where cortex fits
