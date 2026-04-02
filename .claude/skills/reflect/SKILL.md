@@ -1,7 +1,6 @@
 ---
 name: reflect
 description: "Background memory consolidation. Reviews MEMORY.md, project CLAUDE.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /reflect. Writes a consolidation report to the configured reflect log path. Never blocks. Never auto-promotes."
-disable-model-invocation: true
 argument-hint: [optional focus area or project scope]
 allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(python3 -c *)
 ---
