@@ -22,12 +22,26 @@ from .confidence import promote_concept, check_promotion_eligibility, apply_conf
 from .portability import export_graph, import_graph
 
 
+def _resolve_db(args) -> Path:
+    """Resolve database path from --db, --root, or cwd walk."""
+    if args.db:
+        return Path(args.db)
+    if args.root:
+        return find_db_path(root=Path(args.root))
+    return find_db_path()
+
+
 def _connect(args):
-    return connect(Path(args.db) if args.db else None)
+    return connect(_resolve_db(args))
 
 
 def cmd_init(args):
-    db_path = Path(args.db) if args.db else Path('.') / 'concepts.db'
+    if args.db:
+        db_path = Path(args.db)
+    elif args.root:
+        db_path = Path(args.root).resolve() / 'concepts.db'
+    else:
+        db_path = Path('.') / 'concepts.db'
     if db_path.exists() and not args.force:
         print(f"Database already exists at {db_path}. Use --force to reinitialize.")
         return 1
@@ -290,8 +304,7 @@ def cmd_reflect_prep(args):
     from .reflect_prep import write_reflect_context, validate_content_hash
     db = Path(args.db) if args.db else None
     if args.verify:
-        # Check if existing reflect-context.json is fresh
-        db_path = Path(args.db) if args.db else find_db_path()
+        db_path = _resolve_db(args)
         context_path = db_path.parent / 'reflect-context.json'
         if not context_path.exists():
             print("stale: reflect-context.json does not exist")
@@ -496,6 +509,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--db', help='Path to concepts.db (default: auto-detect from .memory-config)')
+    parser.add_argument('--root', help='Workspace root directory containing .memory-config')
     parser.add_argument('--json', action='store_true', help='Output as JSON')
 
     sub = parser.add_subparsers(dest='command', required=True)

@@ -116,8 +116,20 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def find_db_path(start: Optional[Path] = None) -> Path:
-    """Walk up from start (default: cwd) looking for .memory-config. Return concepts.db path."""
+def find_db_path(start: Optional[Path] = None, root: Optional[Path] = None) -> Path:
+    """Find concepts.db path.
+
+    If root is given, use it directly (must contain .memory-config).
+    Otherwise walk up from start (default: cwd) looking for .memory-config.
+    """
+    if root is not None:
+        root = root.resolve()
+        if (root / '.memory-config').exists():
+            return root / 'concepts.db'
+        raise FileNotFoundError(
+            f"No .memory-config found at {root}. "
+            "Run 'concepts init' in your workspace root or create a .memory-config file."
+        )
     current = (start or Path.cwd()).resolve()
     while True:
         if (current / '.memory-config').exists():

@@ -1,6 +1,8 @@
 """Tests for schema creation, WAL mode, and database verification."""
 
-from cortex_lib.db import verify_db
+import pytest
+from pathlib import Path
+from cortex_lib.db import verify_db, find_db_path
 
 
 def test_init_creates_all_tables(db):
@@ -74,3 +76,34 @@ def test_concept_cascade_delete(db):
     sources = db.execute("SELECT * FROM concept_sources WHERE concept_id = 1").fetchall()
     assert len(edges) == 0
     assert len(sources) == 0
+
+
+def test_find_db_path_with_root(tmp_path):
+    """--root flag finds concepts.db directly without cwd walk."""
+    (tmp_path / '.memory-config').write_text('workspace: test\n')
+    result = find_db_path(root=tmp_path)
+    assert result == tmp_path / 'concepts.db'
+
+
+def test_find_db_path_root_missing_config(tmp_path):
+    """--root flag errors clearly when .memory-config is missing."""
+    with pytest.raises(FileNotFoundError, match=str(tmp_path)):
+        find_db_path(root=tmp_path)
+
+
+def test_find_db_path_root_overrides_start(tmp_path):
+    """root takes precedence over start parameter."""
+    root_dir = tmp_path / 'workspace'
+    root_dir.mkdir()
+    (root_dir / '.memory-config').write_text('workspace: test\n')
+    result = find_db_path(start=tmp_path, root=root_dir)
+    assert result == root_dir / 'concepts.db'
+
+
+def test_find_db_path_walk_still_works(tmp_path):
+    """Existing cwd walk behavior is preserved when root is not given."""
+    (tmp_path / '.memory-config').write_text('workspace: test\n')
+    subdir = tmp_path / 'a' / 'b' / 'c'
+    subdir.mkdir(parents=True)
+    result = find_db_path(start=subdir)
+    assert result == tmp_path / 'concepts.db'
