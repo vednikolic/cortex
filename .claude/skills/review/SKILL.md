@@ -40,10 +40,10 @@ First, check if the concepts CLI is available by running `~/.cortex/concepts --v
 If the CLI is available, run:
 
 ```bash
-~/.cortex/concepts confidence-check --json
-~/.cortex/concepts stale --days 14 --json
-~/.cortex/concepts shared --json
-~/.cortex/concepts hot --limit 10 --json
+~/.cortex/concepts --root . confidence-check --json
+~/.cortex/concepts --root . stale --days 14 --json
+~/.cortex/concepts --root . shared --json
+~/.cortex/concepts --root . hot --limit 10 --json
 ```
 
 **Confidence lifecycle thresholds** for interpreting promotion eligibility:
@@ -94,7 +94,7 @@ The user can adjust after the fact ("demote 3", "also promote 12") but does not 
 
 For confirmed promotions:
 ```bash
-~/.cortex/concepts promote "$name" $level
+~/.cortex/concepts --root . promote "$name" $level
 ```
 
 **Stale concepts:**
@@ -118,8 +118,8 @@ If `~/.claude/memory/correction-queue.json` exists and has entries, present each
 
 For accepted corrections:
 ```bash
-~/.cortex/concepts correct "$name" --rename "$new_name"
-~/.cortex/concepts merge "$source" "$target"
+~/.cortex/concepts --root . correct "$name" --rename "$new_name"
+~/.cortex/concepts --root . merge "$source" "$target"
 ```
 
 After triage, clear processed entries from the queue file.
@@ -131,7 +131,7 @@ For unreviewed reflect entries, present:
 
 For edge dismissals:
 ```bash
-~/.cortex/concepts dismiss $edge_id
+~/.cortex/concepts --root . dismiss $edge_id
 ```
 
 ### Step 4: Run confidence decay
@@ -139,7 +139,7 @@ For edge dismissals:
 After triage, apply decay to catch concepts that have gone stale:
 
 ```bash
-~/.cortex/concepts confidence-check --decay --json
+~/.cortex/concepts --root . confidence-check --decay --json
 ```
 
 Report any demotions to the user.
@@ -149,7 +149,7 @@ Report any demotions to the user.
 Create the weekly summary snapshot:
 
 ```bash
-~/.cortex/concepts review-summary --create $WEEK_START --json
+~/.cortex/concepts --root . review-summary --create $WEEK_START --json
 ```
 
 If `$WEEKLY_DIR` does not exist, create it before writing.

@@ -68,11 +68,10 @@ All path references in this document use these variables. Resolve them once at t
 
 Read `.memory-config` from the workspace root. If present, parse `key: value` pairs and set the variables from the Configuration table above. If absent, use the PARA defaults.
 
-```bash
-MEMORY_DIR="$HOME/.claude/projects/$(pwd | sed 's|/|-|g')/memory"
-TODAY=$(date +%Y-%m-%d)
-DAILY_FILE="$DAILY_DIR/$TODAY.md"
-```
+Resolve the remaining variables:
+- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For `/Users/ved/claude` the slug is `-Users-ved-claude`, so `$MEMORY_DIR` is `~/.claude/projects/-Users-ved-claude/memory`.
+- `$TODAY` is today's date in `YYYY-MM-DD` format.
+- `$DAILY_FILE` is `$DAILY_DIR/$TODAY.md`.
 
 Read `$MEMORY_DIR/MEMORY.md` if it exists. Note current line count and any open items in `## Promotion Queue`.
 
@@ -209,10 +208,10 @@ The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to
 **2. Query existing vocabulary:**
 
 ```bash
-~/.cortex/concepts --json list
+~/.cortex/concepts --root . --json list
 ```
 
-This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --json graph` to get edge and project counts for context.
+This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --root . --json graph` to get edge and project counts for context.
 
 **3. Propose concepts:**
 
@@ -239,12 +238,12 @@ Determine the project name from the working directory or `.memory-config` `proje
 
 For each proposed concept (one Bash call each):
 ```bash
-~/.cortex/concepts upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
+~/.cortex/concepts --root . upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
 ```
 
 For each relationship (one Bash call each):
 ```bash
-~/.cortex/concepts edge "$from" "$to" "$relation" --session "$session_hash"
+~/.cortex/concepts --root . edge "$from" "$to" "$relation" --session "$session_hash"
 ```
 
 Run independent upserts and edges in parallel where possible.
@@ -256,7 +255,7 @@ Concepts that do not meet quality threshold (too generic, already fully captured
 After all upserts and edges are created, log the extraction event as a single Bash call. This is critical for undo-last support and future analysis.
 
 ```bash
-~/.cortex/concepts log-extraction --session "$session_hash" --proposed '["concept1", "concept2"]' --created '["concept1"]' --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' --rejected 1 --weight $weight
+~/.cortex/concepts --root . log-extraction --session "$session_hash" --proposed '["concept1", "concept2"]' --created '["concept1"]' --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' --rejected 1 --weight $weight
 ```
 
 The key fields are:

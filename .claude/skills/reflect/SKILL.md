@@ -142,9 +142,9 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 **Output:** 3-5 signal entries for the reflect-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
 
 **When $GRAPH_AVAILABLE is true**, query the graph directly instead of raw text matching:
-- Run `~/.cortex/concepts shared --json` for cross-project concepts (replaces pairwise concept comparison)
-- Run `~/.cortex/concepts hot --json` for concept velocity and trending patterns
-- Run `~/.cortex/concepts stale --json` as additional input for stale detection (supplement Pass 1)
+- Run `~/.cortex/concepts --root . shared --json` for cross-project concepts (replaces pairwise concept comparison)
+- Run `~/.cortex/concepts --root . hot --json` for concept velocity and trending patterns
+- Run `~/.cortex/concepts --root . stale --json` as additional input for stale detection (supplement Pass 1)
 - Classify signals as before (OPPORTUNITY / RISK / CONVERGENCE) with higher confidence when backed by graph data with edge strength >= 2
 
 This is the second-brain pass. It requires model reasoning (string matching alone cannot detect conceptual overlap).
@@ -191,15 +191,15 @@ Examples of what this catches:
 **Input:** Live CLI queries (if $GRAPH_AVAILABLE is true). Skip this pass if CLI is not available.
 **Output:** A graph health section in the reflect-log entry.
 
-1. Run `~/.cortex/concepts graph --json` and report summary: N concepts, M edges, K projects, N normalization rules
-2. Run `~/.cortex/concepts velocity --json` and note extraction rate trends
+1. Run `~/.cortex/concepts --root . graph --json` and report summary: N concepts, M edges, K projects, N normalization rules
+2. Run `~/.cortex/concepts --root . velocity --json` and note extraction rate trends
 3. Flag any graph maturity metrics below threshold:
    - Fewer than 10 concepts
    - Fewer than 2 projects
    - No edges with strength >= 3
    - No cross-project concepts
-4. Run `~/.cortex/concepts hot --json` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
-5. Run `~/.cortex/concepts co-occurs --json <name>` for the top 3 hot concepts to surface structural similarity
+4. Run `~/.cortex/concepts --root . hot --json` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
+5. Run `~/.cortex/concepts --root . co-occurs --json <name>` for the top 3 hot concepts to surface structural similarity
 
 ---
 
