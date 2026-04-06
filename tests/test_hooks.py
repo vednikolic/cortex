@@ -7,12 +7,21 @@ from cortex_lib.hooks import generate_hooks_config, install_hooks, REVIEW_CHECK_
 
 
 def test_generate_hooks_config():
-    """generate_hooks_config returns valid settings structure."""
+    """generate_hooks_config returns valid matcher-wrapped settings structure."""
     config = generate_hooks_config()
     assert "hooks" in config
     hooks = config["hooks"]
     assert "SessionStart" in hooks
     assert "Stop" in hooks
+    # Verify matcher-wrapped format
+    for entry in hooks["SessionStart"]:
+        assert "matcher" in entry
+        assert "hooks" in entry
+        assert isinstance(entry["hooks"], list)
+        assert entry["hooks"][0]["type"] == "command"
+    for entry in hooks["Stop"]:
+        assert "matcher" in entry
+        assert "hooks" in entry
 
 
 def test_install_hooks_creates_scripts(tmp_path):

@@ -44,11 +44,11 @@ There are three levels to getting AI memory right:
 
 **Remember.** Write things down. Every AI tool does this now. Table stakes.
 
-**Forget.** Clean up what you wrote. Anthropic's Auto Dream handles this for Claude Code: deduplicating entries, fixing dates, pruning stale context. Real progress at the platform level.
+**Forget.** Clean up what you wrote. Deduplicating entries, fixing dates, pruning stale context. Real progress at the platform level.
 
 **Connect.** Surface patterns across projects you would not notice yourself. Flag when a decision in one project contradicts an assumption in another. Catch the idea you mentioned three times but never acted on.
 
-Most tools stop at forget. Cortex picks up where cleanup ends. It runs alongside Auto Dream, not instead of it. Cleaning and connecting are different jobs.
+Most tools stop at forget. Cortex picks up where cleanup ends. Cleaning and connecting are different jobs.
 
 ## Install
 
@@ -61,13 +61,13 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory (the root where you run Claude Code). It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory. It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Python 3.10+ (stdlib only, no pip dependencies).
+Requires an LLM coding assistant that supports `.claude/skills/` discovery. Python 3.10+ (stdlib only, no pip dependencies).
 
 ## Quick start
 
-After install, start a Claude Code session in your workspace and run `/save` at the end. That's it. The knowledge graph initializes automatically on first use.
+After install, start a session in your workspace and run `/save` at the end. That's it. The knowledge graph initializes automatically on first use.
 
 ## What happens when you /save
 
@@ -268,7 +268,7 @@ Each node is a **concept** with a kind and confidence level. Edges carry a **rel
 
 ### Multi-agent access
 
-Subagents spawned within a Claude Code session inherit filesystem access and can query the graph directly:
+Subagents spawned within a session inherit filesystem access and can query the graph directly:
 
 ```bash
 # Any subagent can read the graph
@@ -279,7 +279,7 @@ Subagents spawned within a Claude Code session inherit filesystem access and can
 
 All query commands return structured JSON with `--json`. Write operations (`upsert`, `edge`, `promote`, `dismiss`) should go through the main session to avoid concurrent write conflicts.
 
-For independent agents (Cursor alongside Claude Code), the Phase 4 HTTP API will serialize writes. Until then, treat the graph as read-many, write-one.
+For independent agents (multiple coding assistants), the Phase 4 HTTP API will serialize writes. Until then, treat the graph as read-many, write-one.
 
 ## Configuration
 
@@ -301,10 +301,10 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
-python -m pytest tests/ -v    # 120 unit tests
+python -m pytest tests/ -v    # 147 unit tests
 ```
 
-LLM evals (requires Claude Code):
+LLM evals (requires `claude` CLI):
 
 ```bash
 cd evals
@@ -341,15 +341,28 @@ python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --ve
 | `concepts velocity` | Concept creation velocity per week |
 | `concepts co-occurs <name>` | Find concepts sharing common neighbors |
 | `concepts explore` | Open graph explorer in browser |
+| `concepts brief` | Generate session context brief |
 | `concepts hooks install` | Install automated review/reflect hooks |
 
 All commands support `--db <path>` and `--json`.
+
+## Session resume
+
+The opening problem ("forgets everything between sessions") is solved by session resume. Every new session starts with your graph state injected automatically. Zero manual steps after install.
+
+**How it works:** A Stop hook regenerates `cortex-brief.md` from your graph when each session ends (write-on-close). A SessionStart fallback regenerates if the file is stale or missing (verify-on-open). The installer adds `@cortex-brief.md` to your CLAUDE.md, which includes the brief in every session context.
+
+**What the brief contains:** active projects, top concepts, last session's extractions, pending promotions, and graph stats. Young graphs (< 20 concepts) get a condensed format. Empty graphs get a placeholder.
+
+Use `concepts brief --json` to pipe graph state into custom scripts, CI checks, or other AI tools.
+
+If the brief seems stale, debug with `concepts brief --verbose --output cortex-brief.md`.
 
 ## What's next
 
 ```mermaid
 flowchart TB
-    session["Claude Code session"]
+    session["Coding session"]
     session -->|"/save"| db[("concepts.db")]
     session -->|"route learnings"| files["Workspace files"]
     db -->|"/reflect"| signals["Signals"]
@@ -359,8 +372,9 @@ flowchart TB
     triage --> synthesis["Weekly synthesis"]
 
     db --> explorer["Graph explorer"]
+    db --> brief["Session resume"]
     db -.-> api["HTTP API :9473"]
-    api -.-> agents["Claude Code · Cursor<br>Windsurf · Gemini"]
+    api -.-> agents["Any AI coding agent"]
     db -.-> profile["Gravity scores<br>Cortex profile"]
 ```
 
@@ -368,6 +382,7 @@ Solid lines are live today. Dashed lines are planned.
 
 - **Graph explorer** (live): D3 force-directed visualization with search, filters, temporal replay, and correction affordances. Run `concepts explore` to open in browser
 - **Automated hooks** (live): SessionStart and Stop hooks surface review reminders and trigger reflect passes. Run `concepts hooks install` to enable
+- **Session resume** (live): Write-on-close, verify-on-open brief generation. See section above
 - **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
 - **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare
 

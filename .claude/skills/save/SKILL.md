@@ -69,7 +69,7 @@ All path references in this document use these variables. Resolve them once at t
 Read `.memory-config` from the workspace root. If present, parse `key: value` pairs and set the variables from the Configuration table above. If absent, use the PARA defaults.
 
 Resolve the remaining variables:
-- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For `/Users/ved/claude` the slug is `-Users-ved-claude`, so `$MEMORY_DIR` is `~/.claude/projects/-Users-ved-claude/memory`.
+- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For example, `/home/alice/my-project` becomes slug `-home-alice-my-project`, so `$MEMORY_DIR` is `~/.claude/projects/-home-alice-my-project/memory`.
 - `$TODAY` is today's date in `YYYY-MM-DD` format.
 - `$DAILY_FILE` is `$DAILY_DIR/$TODAY.md`.
 

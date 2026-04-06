@@ -20,6 +20,7 @@ from .review import (
 )
 from .confidence import promote_concept, check_promotion_eligibility, apply_confidence_decay
 from .portability import export_graph, import_graph
+from .brief import generate_brief, format_brief
 
 
 def _resolve_db(args) -> Path:
@@ -385,6 +386,30 @@ def cmd_dismiss(args):
     return 0
 
 
+def cmd_brief(args):
+    conn = _connect(args)
+    try:
+        data = generate_brief(conn)
+        if getattr(args, 'verbose', False):
+            stats = data.get('graph_stats', {})
+            print(f"[brief] concepts={stats.get('concepts', 0)} "
+                  f"edges={stats.get('edges', 0)} "
+                  f"projects={stats.get('projects', 0)}", file=sys.stderr)
+            if 'last_session' in data:
+                print(f"[brief] last_extraction={data['last_session']['timestamp']}", file=sys.stderr)
+            if args.output:
+                print(f"[brief] writing to {args.output}", file=sys.stderr)
+        if args.json:
+            print(json.dumps(data, indent=2))
+        elif args.output:
+            Path(args.output).write_text(format_brief(data) + '\n')
+        else:
+            print(format_brief(data))
+    finally:
+        conn.close()
+    return 0
+
+
 def cmd_export(args):
     conn = _connect(args)
     try:
@@ -629,6 +654,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('action', choices=['install', 'status'],
                    help='install: add hooks to settings.json; status: check installation')
     p.set_defaults(func=cmd_hooks)
+
+    p = sub.add_parser('brief', help='Generate session context brief')
+    p.add_argument('--output', '-o', help='Write brief to file (default: stdout)')
+    p.add_argument('--verbose', '-v', action='store_true', help='Print debug info to stderr')
+    p.set_defaults(func=cmd_brief)
 
     p = sub.add_parser('export', help='Export graph to JSON')
     p.add_argument('--output', '-o', help='Output file path (default: stdout)')

@@ -3,7 +3,7 @@
 Cortex Skill Eval Harness
 Scores /save and /reflect SKILL.md files with binary evals.
 
-Uses `claude -p` (Claude Code CLI) as the LLM judge.
+Uses `claude -p` as the LLM judge.
 
 Usage:
     python eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json

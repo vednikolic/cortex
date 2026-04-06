@@ -3,7 +3,7 @@ set -euo pipefail
 
 # cortex installer
 # Copies /save, /reflect, and /review skills into a workspace's .claude/skills/ directory.
-# Claude Code discovers skills from project-local .claude/skills/<name>/SKILL.md.
+# Skills are discovered from project-local .claude/skills/<name>/SKILL.md.
 # Global ~/.claude/skills/ does NOT support skill discovery (verified 2026-03-23).
 # Optionally creates .memory-config in the same workspace.
 
@@ -16,8 +16,8 @@ echo ""
 
 # Check prerequisites
 if ! command -v claude &>/dev/null; then
-    echo "ERROR: claude CLI not found. Install Claude Code first."
-    echo "  https://docs.anthropic.com/en/docs/claude-code"
+    echo "ERROR: claude CLI not found."
+    echo "  Install it from https://docs.anthropic.com/en/docs/claude-code"
     exit 1
 fi
 
@@ -84,6 +84,36 @@ echo "Installing hook scripts..."
 
 echo "Concepts CLI installed."
 
+# Add cortex-brief.md to .gitignore
+if [ -f "$workspace_path/.gitignore" ]; then
+    if ! grep -q "cortex-brief.md" "$workspace_path/.gitignore"; then
+        echo "cortex-brief.md" >> "$workspace_path/.gitignore"
+        echo "  Added cortex-brief.md to .gitignore"
+    fi
+else
+    echo "cortex-brief.md" > "$workspace_path/.gitignore"
+    echo "  Created .gitignore with cortex-brief.md"
+fi
+
+# Add @cortex-brief.md import to CLAUDE.md
+CLAUDE_MD="$workspace_path/CLAUDE.md"
+if [ -f "$CLAUDE_MD" ]; then
+    if ! grep -q "@cortex-brief.md" "$CLAUDE_MD"; then
+        echo "" >> "$CLAUDE_MD"
+        echo "@cortex-brief.md" >> "$CLAUDE_MD"
+        echo "  Added @cortex-brief.md import to CLAUDE.md"
+    fi
+else
+    echo "@cortex-brief.md" > "$CLAUDE_MD"
+    echo "  Created CLAUDE.md with @cortex-brief.md import"
+fi
+
+# Generate initial brief so first session has context immediately
+if [ -f "$workspace_path/concepts.db" ] || [ -f "$workspace_path/.memory-config" ]; then
+    "$CORTEX_HOME/concepts" --root "$workspace_path" brief --output "$workspace_path/cortex-brief.md" 2>/dev/null && \
+        echo "  Generated initial cortex-brief.md" || true
+fi
+
 # Check if ~/.cortex is in PATH
 if ! echo "$PATH" | tr ':' '\n' | grep -q "$CORTEX_HOME"; then
     echo ""
@@ -139,7 +169,7 @@ else
 fi
 
 # Self-test: verify hook scripts
-for script in review-check.sh reflect-gate.sh reflect-surface.sh; do
+for script in brief-write.sh brief-inject.sh review-check.sh reflect-gate.sh reflect-surface.sh; do
     if [ -f "$HOME/.claude/scripts/$script" ]; then
         echo "  PASS: $script installed"
         test_passed=$((test_passed + 1))
@@ -153,10 +183,11 @@ echo ""
 if [ "$test_failed" -eq 0 ]; then
     echo "All $test_passed checks passed."
     echo ""
-    echo "Usage (in a Claude Code session started from $workspace_path):"
+    echo "Usage (from $workspace_path):"
     echo "  /save              Save session learnings to memory"
     echo "  /reflect           Run background memory consolidation"
     echo "  /review            Weekly signal triage and synthesis"
+    echo "  concepts brief     Generate session context brief"
     echo "  concepts <cmd>     Manage the knowledge graph"
     echo "  concepts explore    Open graph explorer in browser"
     echo "  concepts hooks install  Install automated hooks"

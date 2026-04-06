@@ -1,4 +1,4 @@
-"""Cortex hook installer for Claude Code settings.json."""
+"""Cortex hook installer for settings.json."""
 
 import json
 from pathlib import Path
@@ -42,6 +42,48 @@ fi
 exit 1
 """
 
+BRIEF_WRITE_SH = """#!/usr/bin/env bash
+# cortex: brief-write.sh (Stop hook)
+# Regenerates cortex-brief.md when a session ends.
+# Primary trigger for brief freshness. Async from /save.
+
+if [ ! -f ".memory-config" ]; then exit 0; fi
+
+CONCEPTS_CLI="$HOME/.cortex/concepts"
+if [ ! -f "$CONCEPTS_CLI" ]; then exit 0; fi
+
+"$CONCEPTS_CLI" --root "$PWD" brief --output "cortex-brief.md" 2>/dev/null
+"""
+
+BRIEF_INJECT_SH = """#!/usr/bin/env bash
+# cortex: brief-inject.sh (SessionStart hook)
+# Fallback: regenerates cortex-brief.md if stale (>24h) or missing.
+
+if [ ! -f ".memory-config" ]; then exit 0; fi
+
+CONCEPTS_CLI="$HOME/.cortex/concepts"
+if [ ! -f "$CONCEPTS_CLI" ]; then exit 0; fi
+
+BRIEF_PATH="cortex-brief.md"
+# 24h chosen because most users start 1-2 sessions per day.
+# The Stop hook (brief-write.sh) handles session-to-session freshness.
+# This fallback only fires after crashes, force-quits, or first install.
+STALE_SECONDS=86400
+
+if [ -f "$BRIEF_PATH" ]; then
+    if [ "$(uname)" = "Darwin" ]; then
+        FILE_AGE=$(stat -f %m "$BRIEF_PATH")
+    else
+        FILE_AGE=$(stat -c %Y "$BRIEF_PATH")
+    fi
+    NOW=$(date +%s)
+    AGE=$((NOW - FILE_AGE))
+    if [ "$AGE" -lt "$STALE_SECONDS" ]; then exit 0; fi
+fi
+
+"$CONCEPTS_CLI" --root "$PWD" brief --output "$BRIEF_PATH" 2>/dev/null
+"""
+
 REFLECT_SURFACE_SH = """#!/usr/bin/env bash
 # cortex: reflect-surface.sh (SessionStart hook)
 # If a reflect ran since last session, show the latest finding.
@@ -69,23 +111,35 @@ echo "$NOW" > "$LAST_SURFACED"
 
 
 def generate_hooks_config() -> dict:
-    """Generate the hooks configuration for settings.json."""
+    """Generate the hooks configuration for settings.json.
+
+    Uses the {matcher, hooks[]} schema required by the hooks system (as of 2026-04).
+    Each entry wraps one command in a matcher object with empty string (match all).
+    """
     return {
         "hooks": {
             "SessionStart": [
                 {
-                    "type": "command",
-                    "command": "bash ~/.claude/scripts/review-check.sh",
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/brief-inject.sh"}],
                 },
                 {
-                    "type": "command",
-                    "command": "bash ~/.claude/scripts/reflect-surface.sh",
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/review-check.sh"}],
+                },
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/reflect-surface.sh"}],
                 },
             ],
             "Stop": [
                 {
-                    "type": "command",
-                    "command": "bash ~/.claude/scripts/reflect-gate.sh",
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/brief-write.sh"}],
+                },
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/reflect-gate.sh"}],
                 },
             ],
         }
@@ -96,7 +150,7 @@ def install_hooks(
     scripts_dir: Optional[Path] = None,
     settings_path: Optional[Path] = None,
 ) -> dict:
-    """Install cortex hooks into Claude Code.
+    """Install cortex hooks.
 
     1. Write hook scripts to scripts_dir
     2. Merge hooks config into settings.json
@@ -111,6 +165,8 @@ def install_hooks(
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     scripts = {
+        "brief-write.sh": BRIEF_WRITE_SH,
+        "brief-inject.sh": BRIEF_INJECT_SH,
         "review-check.sh": REVIEW_CHECK_SH,
         "reflect-gate.sh": REFLECT_GATE_SH,
         "reflect-surface.sh": REFLECT_SURFACE_SH,
@@ -135,9 +191,22 @@ def install_hooks(
     for event, hook_list in hooks_config["hooks"].items():
         if event not in settings["hooks"]:
             settings["hooks"][event] = []
-        existing_cmds = {h.get("command", "") for h in settings["hooks"][event]}
+
+        # Collect existing commands from both flat and matcher-wrapped formats
+        existing_cmds = set()
+        for entry in settings["hooks"][event]:
+            # Matcher-wrapped: {matcher, hooks: [{type, command}]}
+            if "hooks" in entry and isinstance(entry["hooks"], list):
+                for h in entry["hooks"]:
+                    existing_cmds.add(h.get("command", ""))
+            # Legacy flat: {type, command}
+            elif "command" in entry:
+                existing_cmds.add(entry["command"])
+
         for hook in hook_list:
-            if hook["command"] not in existing_cmds:
+            # Extract command from matcher-wrapped format
+            cmd = hook.get("hooks", [{}])[0].get("command", "") if "hooks" in hook else hook.get("command", "")
+            if cmd not in existing_cmds:
                 settings["hooks"][event].append(hook)
 
     settings_path.parent.mkdir(parents=True, exist_ok=True)

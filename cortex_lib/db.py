@@ -116,6 +116,7 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+
 def find_db_path(start: Optional[Path] = None, root: Optional[Path] = None) -> Path:
     """Find concepts.db path.
 
