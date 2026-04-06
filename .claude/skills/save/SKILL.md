@@ -69,7 +69,7 @@ All path references in this document use these variables. Resolve them once at t
 Read `.memory-config` from the workspace root. If present, parse `key: value` pairs and set the variables from the Configuration table above. If absent, use the PARA defaults.
 
 Resolve the remaining variables:
-- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For `/home/user/myproject` the slug is `-home-user-myproject`, so `$MEMORY_DIR` is `~/.claude/projects/-home-user-myproject/memory`.
+- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For `/Users/ved/claude` the slug is `-Users-ved-claude`, so `$MEMORY_DIR` is `~/.claude/projects/-Users-ved-claude/memory`.
 - `$TODAY` is today's date in `YYYY-MM-DD` format.
 - `$DAILY_FILE` is `$DAILY_DIR/$TODAY.md`.
 
@@ -152,17 +152,17 @@ Write the proposals to `~/.cortex/last-session.json` using the Write tool:
   "workspace_root": "/absolute/path/to/workspace",
   "session_hash": "c61518a4fd94ac05",
   "weight": 5,
-  "project": "my-app",
+  "project": "cortex",
   "concepts": [
-    {"name": "retry-pattern", "kind": "pattern"},
-    {"name": "api-caching", "kind": "pattern"}
+    {"name": "session-resume", "kind": "pattern"},
+    {"name": "undercover-mode", "kind": "pattern"}
   ],
   "edges": [
-    {"from": "retry-pattern", "to": "my-app", "relation": "enables"},
-    {"from": "api-caching", "to": "retry-pattern", "relation": "related-to"}
+    {"from": "session-resume", "to": "cortex", "relation": "enables"},
+    {"from": "undercover-mode", "to": "public-repo-audit", "relation": "related-to"}
   ],
-  "proposed": ["retry-pattern", "api-caching", "error-handling"],
-  "created": ["retry-pattern", "api-caching"],
+  "proposed": ["session-resume", "undercover-mode", "public-repo-audit"],
+  "created": ["session-resume", "undercover-mode"],
   "rejected_count": 1
 }
 ```
@@ -226,6 +226,7 @@ This step is the second-brain layer. Go beyond what happened and look for what i
 2. **Reinforcement**: Confirms an existing entry? Increment a tally or mark as promotion candidate.
 3. **Contradiction**: Conflicts with an existing entry? Flag with `[CONFLICT: ...]` note for review.
 4. **Stale**: Existing entry not referenced in 10+ sessions? Flag as `[STALE?]` in the report.
+5. **Violated preference**: If the user corrected behavior this session, check whether the corrected behavior matches an existing entry in `$LEARNINGS` or MEMORY.md feedback entries. If it does, this is not a new learning -- it is a documented preference that was not applied. Escalate immediately to Step 9 as a Rule promotion candidate with the tag `[VIOLATED]`. Do not wait for a second occurrence. A preference that exists in documentation but was not followed during generation is a system failure, and the observation layer has already proven insufficient. The fix is promotion to CLAUDE.md Rules, which is the enforcement layer.
 
 **Friction detection**: For every item in the Friction Log, check:
 - Has this friction appeared 2+ times? Surface it in the report as an automation or abstraction candidate.
@@ -414,14 +415,22 @@ For ambiguous signals, surface them and ask. Do not act autonomously on anything
 
 ### Step 9: Check for rule promotions
 
-If any learning appears 2+ times, or is phrased as a universal principle, suggest promotion to the root CLAUDE.md:
+Two escalation paths:
 
+**Normal promotion** -- a learning appears 2+ times, or is phrased as a universal principle:
 ```
 Potential CLAUDE.md rules:
   "[pattern]" -- seen N times, could be a standing rule
 ```
 
-Do not auto-promote. Always let the user decide.
+**Violated preference escalation** -- Step 4 flagged a `[VIOLATED]` entry (user corrected behavior that was already documented in learnings.md or MEMORY.md). This skips the 2+ occurrence requirement. A documented preference that was not applied is already past the threshold. Surface it prominently:
+```
+VIOLATED PREFERENCE -- immediate Rule candidate:
+  "[preference text from learnings.md]" -- documented but not applied this session
+  Proposed rule: [draft the rule text for CLAUDE.md]
+```
+
+Do not auto-promote. Always let the user decide. But for violated preferences, present the promotion first in the report, not buried under patterns.
 
 ---
 
