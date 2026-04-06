@@ -13,7 +13,7 @@ MARKER="$HOME/.cortex-review-pending"
 
 if [ -f "$MARKER" ]; then
     WEEK=$(cat "$MARKER")
-    echo "You have concepts waiting to be promoted and stale signals to triage. Run /review to keep your knowledge graph accurate (week of $WEEK)."
+    echo "Patterns from recent work are ready to be locked in so future sessions build on them instead of rediscovering them. Run /review (week of $WEEK)."
 fi
 """
 
