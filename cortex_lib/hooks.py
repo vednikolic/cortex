@@ -13,7 +13,7 @@ MARKER="$HOME/.cortex-review-pending"
 
 if [ -f "$MARKER" ]; then
     WEEK=$(cat "$MARKER")
-    echo "cortex: /review pending for week of $WEEK. Run /review to triage signals."
+    echo "You have concepts waiting to be promoted and stale signals to triage. Run /review to keep your knowledge graph accurate (week of $WEEK)."
 fi
 """
 
@@ -138,7 +138,7 @@ fi
 
 # If reflect-gate flagged a reflect as due, remind the user
 if [ -f "$REFLECT_DUE" ]; then
-    echo "Reflect is due. Run /reflect to consolidate recent sessions."
+    echo "Recent sessions have unsurfaced patterns and stale entries. Run /reflect to find what your daily notes imply but haven't said."
     rm -f "$REFLECT_DUE"
 fi
 """
