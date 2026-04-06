@@ -327,5 +327,26 @@
         "check": "Does the document explicitly state that the analysis passes run sequentially and are logically independent (no pass reads the output of a previous pass)?",
         "prd_ref": "phase3.reflect.analysis_passes",
         "weight": 1.0
+    },
+    {
+        "id": "constraint_governance_surfaces_gaps",
+        "category": "analysis",
+        "check": "Does the document define a constraint governance pass that scans learnings.md for constraint-type entries (using keyword heuristics like 'never', 'always', 'must', 'confidential', etc.), checks them against CLAUDE.md Rules and publish-audit.sh DENY_PATTERNS, and surfaces unprotected or partially covered constraints in the reflect-log?",
+        "prd_ref": "phase3.reflect.constraint_governance",
+        "weight": 1.0
+    },
+    {
+        "id": "constraint_governance_no_false_positives",
+        "category": "behavioral",
+        "check": "Does the constraint governance pass distinguish between constraint-type entries (enforcement targets like confidentiality rules, leak prevention, PII) and pattern-type entries (eval design, content style, product thinking), reporting 'no gaps' when only pattern entries are present rather than promoting patterns as constraints?",
+        "prd_ref": "phase3.reflect.constraint_governance",
+        "weight": 1.0
+    },
+    {
+        "id": "constraint_governance_checks_deny_list",
+        "category": "behavioral",
+        "check": "Does the constraint governance pass check whether constraints that reference greppable terms (person names, product names, path patterns) have corresponding entries in the publish-audit.sh DENY_PATTERNS array, and surface missing deny patterns as a specific gap?",
+        "prd_ref": "phase3.reflect.constraint_governance",
+        "weight": 1.0
     }
 ]

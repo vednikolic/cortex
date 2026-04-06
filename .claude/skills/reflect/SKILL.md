@@ -84,6 +84,8 @@ Before running any analysis, locate and read these files. All paths are relative
 | Learnings | `$LEARNINGS` | Full file |
 | Daily notes | `$DAILY_DIR/YYYY-MM-DD.md` | Last 7 files by date; read only Work Log and Tasks sections |
 | Project CLAUDE.md files | `$PROJECT_ROOT/*/CLAUDE.md` (use `find $PROJECT_ROOT -name "CLAUDE.md" -maxdepth 3`) | Friction Log, Decision Register, and architecture sections |
+| Root CLAUDE.md | `CLAUDE.md` (workspace root) | `## Rules` section only (for Pass 7) |
+| Publish audit deny list | `~/.claude/scripts/publish-audit.sh` | `DENY_PATTERNS` array only (for Pass 7) |
 
 Do not read full session transcripts. Too expensive and too noisy. The daily notes are the already-distilled record.
 
@@ -112,7 +114,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 
 **Progress indication (manual invocation only):** When triggered manually via /reflect, output the pass name before starting each pass (e.g., "Pass 1: Stale detection...") so the user sees intermediate progress. When triggered via Stop hook, skip progress output since the user is not watching.
 
-**Pass ordering:** Passes run sequentially (1 through 6) but are logically independent. No pass reads the output of a previous pass. Each pass reads only the source files listed in "What /reflect reads" and the graph CLI. Sequential execution is for simplicity and predictable progress output, not for data dependency.
+**Pass ordering:** Passes run sequentially (1 through 7) but are logically independent. No pass reads the output of a previous pass. Each pass reads only the source files listed in "What /reflect reads" and the graph CLI. Sequential execution is for simplicity and predictable progress output, not for data dependency.
 
 ### Pass 1: Stale detection
 
@@ -201,6 +203,27 @@ Examples of what this catches:
 4. Run `~/.cortex/concepts --root . hot --json` and surface concepts with edge strength >= 3 (mature signals worth reviewing)
 5. Run `~/.cortex/concepts --root . co-occurs --json <name>` for the top 3 hot concepts to surface structural similarity
 
+### Pass 7: Constraint governance
+
+**Input:** `$LEARNINGS`, root `CLAUDE.md` (Rules section only), `~/.claude/scripts/publish-audit.sh` (DENY_PATTERNS array only).
+**Output:** A constraint governance section in the reflect-log entry.
+
+This pass checks whether constraint-type learnings have corresponding enforcement. Constraints that sit in learnings.md without matching rules or deny patterns are leak vectors.
+
+1. Read `$LEARNINGS` and identify constraint-type entries. Heuristic: entries containing words like "never", "always", "do not", "must", "block", "prevent", "audit", "separation", "confidentiality agreement", "confidential", or entries under sections named "Confidentiality", "Separation", "Security". Err toward false positives (surface too many) rather than false negatives (miss real constraints).
+2. Read the `## Rules` section of root `CLAUDE.md`.
+3. Read `~/.claude/scripts/publish-audit.sh` and extract the DENY_PATTERNS array entries.
+4. For each constraint found in step 1:
+   a. Check if a semantically matching rule exists in the CLAUDE.md Rules section.
+   b. Check if the constraint references a greppable term (person name, product name, path pattern). If so, check whether that term appears in DENY_PATTERNS.
+5. Classify each constraint as:
+   - **Covered**: matching rule exists in CLAUDE.md AND deny pattern exists (if the constraint references a greppable term)
+   - **Partially covered**: rule exists but no deny pattern (or vice versa)
+   - **Unprotected**: neither rule nor deny pattern
+6. Write findings to the Constraint Governance section of the reflect-log. If no gaps found, write "All N constraints covered. No gaps detected."
+
+This pass is read-only. It MUST NOT edit CLAUDE.md, publish-audit.sh, or learnings.md. It surfaces recommendations only.
+
 ---
 
 ## Output: reflect-log.md entry
@@ -237,6 +260,19 @@ Append to `$REFLECT_LOG`:
 - Graph: N concepts, M edges, K projects
 - Maturity: [which graph health criteria are met / not met]
 - Mature signals: [concepts with strength >= 3 edges]
+
+### Constraint governance
+Scanned: N constraint-type entries in learnings.md
+Covered: M (have matching CLAUDE.md rule + deny pattern where applicable)
+Gaps: K
+
+Unprotected:
+- learnings.md L42: "[entry text]" -- no matching CLAUDE.md rule
+- learnings.md L73: references "ProjectX" -- no deny pattern in publish-audit.sh
+
+Recommendations:
+- Add to CLAUDE.md Rules: [proposed rule text]
+- Add to publish-audit.sh DENY_PATTERNS: 'pattern'
 ```
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
