@@ -109,6 +109,81 @@ echo "$LATEST"
 echo "$NOW" > "$LAST_SURFACED"
 """
 
+CONCEPT_EXTRACT_SH = """#!/usr/bin/env bash
+# cortex: concept-extract.sh (Stop hook)
+# Executes queued concept extractions from /save.
+# Reads ~/.cortex/last-session.json, runs CLI upserts and edges, cleans up.
+# Silent on success. Only prints on error.
+
+SESSION_FILE="$HOME/.cortex/last-session.json"
+if [ ! -f "$SESSION_FILE" ]; then exit 0; fi
+
+CONCEPTS_CLI="$HOME/.cortex/concepts"
+if [ ! -f "$CONCEPTS_CLI" ]; then
+    rm -f "$SESSION_FILE"
+    exit 0
+fi
+
+python3 -c '
+import json, subprocess, sys
+
+session_file = sys.argv[1]
+concepts_cli = sys.argv[2]
+
+try:
+    d = json.load(open(session_file))
+except Exception:
+    sys.exit(0)
+
+root = d.get("workspace_root", "")
+if not root:
+    sys.exit(0)
+
+sh = d.get("session_hash", "")
+w = str(d.get("weight", 1))
+proj = d.get("project", "")
+errors = 0
+
+for c in d.get("concepts", []):
+    r = subprocess.run(
+        [concepts_cli, "--root", root, "upsert", c["name"],
+         "--kind", c.get("kind", "topic"), "--project", proj,
+         "--session", sh, "--weight", w],
+        capture_output=True
+    )
+    if r.returncode != 0:
+        errors += 1
+
+for e in d.get("edges", []):
+    r = subprocess.run(
+        [concepts_cli, "--root", root, "edge", e["from"], e["to"], e["relation"],
+         "--session", sh],
+        capture_output=True
+    )
+    if r.returncode != 0:
+        errors += 1
+
+proposed = json.dumps(d.get("proposed", []))
+created = json.dumps(d.get("created", []))
+edges_json = json.dumps(d.get("edges", []))
+rejected = str(d.get("rejected_count", 0))
+
+r = subprocess.run(
+    [concepts_cli, "--root", root, "log-extraction",
+     "--session", sh, "--proposed", proposed, "--created", created,
+     "--edges", edges_json, "--rejected", rejected, "--weight", w],
+    capture_output=True
+)
+if r.returncode != 0:
+    errors += 1
+
+if errors > 0:
+    print("cortex: concept-extract: " + str(errors) + " command(s) failed", file=sys.stderr)
+' "$SESSION_FILE" "$CONCEPTS_CLI"
+
+rm -f "$SESSION_FILE"
+"""
+
 
 def generate_hooks_config() -> dict:
     """Generate the hooks configuration for settings.json.
@@ -133,6 +208,10 @@ def generate_hooks_config() -> dict:
                 },
             ],
             "Stop": [
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/concept-extract.sh"}],
+                },
                 {
                     "matcher": "",
                     "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/brief-write.sh"}],
@@ -170,6 +249,7 @@ def install_hooks(
         "review-check.sh": REVIEW_CHECK_SH,
         "reflect-gate.sh": REFLECT_GATE_SH,
         "reflect-surface.sh": REFLECT_SURFACE_SH,
+        "concept-extract.sh": CONCEPT_EXTRACT_SH,
     }
 
     for name, content in scripts.items():

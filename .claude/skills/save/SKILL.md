@@ -69,7 +69,7 @@ All path references in this document use these variables. Resolve them once at t
 Read `.memory-config` from the workspace root. If present, parse `key: value` pairs and set the variables from the Configuration table above. If absent, use the PARA defaults.
 
 Resolve the remaining variables:
-- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For example, `/home/alice/my-project` becomes slug `-home-alice-my-project`, so `$MEMORY_DIR` is `~/.claude/projects/-home-alice-my-project/memory`.
+- `$MEMORY_DIR` is `~/.claude/projects/{slug}/memory`, where `{slug}` is the absolute workspace path with `/` replaced by `-`. For `/Users/ved/claude` the slug is `-Users-ved-claude`, so `$MEMORY_DIR` is `~/.claude/projects/-Users-ved-claude/memory`.
 - `$TODAY` is today's date in `YYYY-MM-DD` format.
 - `$DAILY_FILE` is `$DAILY_DIR/$TODAY.md`.
 
@@ -93,6 +93,81 @@ Review the full conversation and extract:
 - **Unfinished work**: Anything started but not completed, or next steps identified.
 
 If the user provided a focus area via `$ARGUMENTS`, prioritize that topic.
+
+---
+
+### Step 2b: Queue concept extraction (requires concepts CLI)
+
+**Skip this step entirely if:**
+- The `--sensitive` flag was provided
+- `~/.cortex/concepts` does not exist (cortex not installed)
+- The session had no meaningful content (pure Q&A with no decisions, tools, or patterns)
+
+**Auto-init:** If `~/.cortex/concepts` exists but `concepts.db` does not exist in the workspace root, run `~/.cortex/concepts init` to create it.
+
+**1. Compute session weight:**
+
+From the Step 2 summary, estimate:
+- `token_count`: short session < 5000, medium 5000-15000, long > 15000 tokens
+- `concepts`: count of distinct topics, tools, or patterns identified
+- `decisions`: count of decisions logged
+- `friction`: count of friction points identified
+
+The weight formula is: `weight = 1 + (token_count>5000) + (concepts>=2) + (decisions>=1) + (friction>=1)`, capped at 5.
+
+The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to 5, weight 4-5 up to 8.
+
+**2. Query existing vocabulary:**
+
+```bash
+~/.cortex/concepts --root . --json list
+```
+
+This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --root . --json graph` to get edge and project counts for context.
+
+**3. Propose concepts:**
+
+From the session summary, identify up to the extraction cap number of concepts that:
+- Represent tools, patterns, decisions, or recurring themes (not ephemeral details)
+- Map against existing vocabulary first (prefer matching over creating new)
+- Have at least one clear relationship to another concept
+
+For each concept, determine:
+- `name`: canonical name (check existing vocabulary)
+- `kind`: one of topic, tool, pattern, decision, person, project
+- Relationships: edges to existing or co-proposed concepts, with relation type from: related-to, depends-on, conflicts-with, enables, is-instance-of, supersedes, blocked-by, derived-from
+
+**4. Write proposals to last-session.json:**
+
+Compute a session hash by generating an MD5 hex digest of (session_summary + ISO_timestamp), truncated to 16 characters:
+```bash
+python3 -c "import hashlib; print(hashlib.md5(('summary here 2026-03-24T20:00:00').encode()).hexdigest()[:16])"
+```
+
+Determine the project name from the working directory or `.memory-config` `projects:` section.
+
+Write the proposals to `~/.cortex/last-session.json` using the Write tool:
+```json
+{
+  "workspace_root": "/absolute/path/to/workspace",
+  "session_hash": "c61518a4fd94ac05",
+  "weight": 5,
+  "project": "cortex",
+  "concepts": [
+    {"name": "session-resume", "kind": "pattern"},
+    {"name": "undercover-mode", "kind": "pattern"}
+  ],
+  "edges": [
+    {"from": "session-resume", "to": "cortex", "relation": "enables"},
+    {"from": "undercover-mode", "to": "public-repo-audit", "relation": "related-to"}
+  ],
+  "proposed": ["session-resume", "undercover-mode", "public-repo-audit"],
+  "created": ["session-resume", "undercover-mode"],
+  "rejected_count": 1
+}
+```
+
+The `concepts` array contains only concepts that passed quality filtering (will be upserted by the hook). The `proposed` and `created` arrays are metadata for the log-extraction call. The Stop hook (concept-extract.sh) reads this file after the session ends and executes the CLI calls.
 
 ---
 
@@ -181,102 +256,6 @@ Convergence: project-A event logging + project-B telemetry + project-C cost trac
 Surface detected signals in Step 7 under `Signals`.
 
 **Stale detection**: Entry not referenced in 10 sessions -> flag automatically in the Step 7 report. Do not auto-delete. Let the user decide.
-
----
-
-### Step 4b: Concept extraction (requires concepts CLI)
-
-**Skip this step entirely if:**
-- The `--sensitive` flag was provided
-- `~/.cortex/concepts` does not exist (cortex not installed)
-- The session had no meaningful content (pure Q&A with no decisions, tools, or patterns)
-
-**Auto-init:** If `~/.cortex/concepts` exists but `concepts.db` does not exist in the workspace root, run `~/.cortex/concepts init` to create it. This is the normal first-run path.
-
-**1. Compute session weight:**
-
-From the Step 2 summary, estimate:
-- `token_count`: short session < 5000, medium 5000-15000, long > 15000 tokens
-- `concepts`: count of distinct topics, tools, or patterns identified
-- `decisions`: count of decisions logged
-- `friction`: count of friction points identified
-
-The weight formula is: `weight = 1 + (token_count>5000) + (concepts>=2) + (decisions>=1) + (friction>=1)`, capped at 5.
-
-The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to 5, weight 4-5 up to 8.
-
-**2. Query existing vocabulary:**
-
-```bash
-~/.cortex/concepts --root . --json list
-```
-
-This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --root . --json graph` to get edge and project counts for context.
-
-**3. Propose concepts:**
-
-From the session summary, identify up to the extraction cap number of concepts that:
-- Represent tools, patterns, decisions, or recurring themes (not ephemeral details)
-- Map against existing vocabulary first (prefer matching over creating new)
-- Have at least one clear relationship to another concept
-
-For each concept, determine:
-- `name`: canonical name (check existing vocabulary)
-- `kind`: one of topic, tool, pattern, decision, person, project
-- Relationships: edges to existing or co-proposed concepts, with relation type from: related-to, depends-on, conflicts-with, enables, is-instance-of, supersedes, blocked-by, derived-from
-
-**4. Execute extraction:**
-
-Compute a session hash by generating an MD5 hex digest of (session_summary + ISO_timestamp), truncated to 16 characters. Use a single standalone Bash call:
-```bash
-python3 -c "import hashlib; print(hashlib.md5(('summary here 2026-03-24T20:00:00').encode()).hexdigest()[:16])"
-```
-
-Determine the project name from the working directory or `.memory-config` `projects:` section.
-
-**IMPORTANT: Make each CLI call as a separate Bash invocation. Do NOT chain commands with `&&` or use `$()` substitution, as compound commands trigger permission prompts that break the zero-approval flow.**
-
-For each proposed concept (one Bash call each):
-```bash
-~/.cortex/concepts --root . upsert "$name" --kind $kind --project "$project" --session "$session_hash" --weight $weight
-```
-
-For each relationship (one Bash call each):
-```bash
-~/.cortex/concepts --root . edge "$from" "$to" "$relation" --session "$session_hash"
-```
-
-Run independent upserts and edges in parallel where possible.
-
-Concepts that do not meet quality threshold (too generic, already fully captured, ephemeral) are counted as rejected but their names are NOT logged. Only the rejected count is stored.
-
-**5. Log the extraction:**
-
-After all upserts and edges are created, log the extraction event as a single Bash call. This is critical for undo-last support and future analysis.
-
-```bash
-~/.cortex/concepts --root . log-extraction --session "$session_hash" --proposed '["concept1", "concept2"]' --created '["concept1"]' --edges '[{"from": "concept1", "to": "existing", "relation": "related-to"}]' --rejected 1 --weight $weight
-```
-
-The key fields are:
-- `session_hash`: unique per extraction (includes ISO timestamp)
-- `concepts_proposed`: all concepts considered (JSON array of names)
-- `created_concepts`: concepts actually created or updated (JSON array)
-- `created_edges`: edges created (JSON array of {from, to, relation} objects)
-- `rejected`: integer count of concepts that did not meet quality threshold
-- `weight`: session weight computed in sub-step 1
-
-**6. Report graph status (graph warming UX):**
-
-After extraction, append a graph status line to the Step 7 report:
-
-```
-Graph: N concepts, M edges, K projects.
-```
-
-At specific thresholds, add invitations:
-- At 5+ concepts: `Tip: Run 'concepts graph' to see your knowledge graph.`
-- At 10+ concepts across 2+ projects: `Your graph is ready for full /reflect integration. Run 'concepts reflect-prep' before your next /reflect.`
 
 ---
 
@@ -390,6 +369,8 @@ If a session produces 8+ items for MEMORY.md, consolidate related entries before
 
 ```
 Session saved.
+
+Concepts queued for extraction: [N] (or "skipped" if Step 2b was skipped)
 
 Daily note ($DAILY_DIR/YYYY-MM-DD.md):
   Work: [summary of work log entries added]
