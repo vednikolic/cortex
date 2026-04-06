@@ -19,27 +19,44 @@ fi
 
 REFLECT_GATE_SH = """#!/usr/bin/env bash
 # cortex: reflect-gate.sh (Stop hook)
-# Decide whether this session warrants a /reflect pass.
+# Checks whether a /reflect pass is warranted and logs the result.
+# Always exits 0 to avoid spurious hook error messages.
+# When conditions are met, writes a flag file that reflect-surface.sh
+# reads at next SessionStart to remind the user.
 
 TURN_COUNT="${CLAUDE_SESSION_TURN_COUNT:-0}"
 LAST_REFLECT="$HOME/.claude/reflect-last-run"
+GATE_LOG="$HOME/.claude/reflect-gate.log"
+REFLECT_DUE="$HOME/.claude/reflect-due"
 NOW=$(date +%s)
 
-if [ "$TURN_COUNT" -ge 15 ]; then
-    echo "reflect:trigger:heavy-session turns=$TURN_COUNT"
+# Trigger on 8+ turns (heavy tool-use sessions have fewer turns
+# but more substance than conversational sessions)
+if [ "$TURN_COUNT" -ge 8 ]; then
+    echo "reflect:trigger:heavy-session turns=$TURN_COUNT $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
+    echo "$NOW" > "$REFLECT_DUE"
     exit 0
 fi
 
+# Trigger if 24h+ since last reflect
 if [ -f "$LAST_REFLECT" ]; then
     LAST=$(cat "$LAST_REFLECT")
     DIFF=$((NOW - LAST))
     if [ "$DIFF" -ge 86400 ]; then
-        echo "reflect:trigger:daily-elapsed diff=${DIFF}s"
+        echo "reflect:trigger:daily-elapsed diff=${DIFF}s $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
+        echo "$NOW" > "$REFLECT_DUE"
         exit 0
     fi
 fi
 
-exit 1
+# Trigger if /save ran this session (last-session.json exists = substantive session)
+if [ -f "$HOME/.cortex/last-session.json" ]; then
+    echo "reflect:trigger:save-ran $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
+    echo "$NOW" > "$REFLECT_DUE"
+    exit 0
+fi
+
+exit 0
 """
 
 BRIEF_WRITE_SH = """#!/usr/bin/env bash
@@ -87,26 +104,93 @@ fi
 REFLECT_SURFACE_SH = """#!/usr/bin/env bash
 # cortex: reflect-surface.sh (SessionStart hook)
 # If a reflect ran since last session, show the latest finding.
+# If reflect-gate flagged a reflect as due, remind the user.
 
 REFLECT_LOG="${REFLECT_LOG:-2-areas/me/reflect-log.md}"
 LAST_SURFACED="$HOME/.claude/reflect-last-surfaced"
+REFLECT_DUE="$HOME/.claude/reflect-due"
 NOW=$(date +%s)
 
-if [ ! -f "$REFLECT_LOG" ]; then exit 0; fi
-
-if [ -f "$LAST_SURFACED" ]; then
-    LAST=$(cat "$LAST_SURFACED")
-    if [ "$(uname)" = "Darwin" ]; then
-        REFLECT_TIME=$(stat -f %m "$REFLECT_LOG")
+# Surface latest reflect entry if reflect ran since last surfaced
+if [ -f "$REFLECT_LOG" ]; then
+    SHOW=0
+    if [ ! -f "$LAST_SURFACED" ]; then
+        SHOW=1
     else
-        REFLECT_TIME=$(stat -c %Y "$REFLECT_LOG")
+        LAST=$(cat "$LAST_SURFACED")
+        if [ "$(uname)" = "Darwin" ]; then
+            REFLECT_TIME=$(stat -f %m "$REFLECT_LOG")
+        else
+            REFLECT_TIME=$(stat -c %Y "$REFLECT_LOG")
+        fi
+        if [ "$REFLECT_TIME" -gt "$LAST" ]; then
+            SHOW=1
+        fi
     fi
-    if [ "$REFLECT_TIME" -le "$LAST" ]; then exit 0; fi
+
+    if [ "$SHOW" -eq 1 ]; then
+        LATEST=$(awk '/^## Reflect/{found=1;count++} found&&count==1{print} /^## Reflect/&&count>1{exit}' "$REFLECT_LOG")
+        echo "$LATEST"
+        echo "$NOW" > "$LAST_SURFACED"
+        exit 0
+    fi
 fi
 
-LATEST=$(awk '/^## Reflect/{found=1;count++} found&&count==1{print} /^## Reflect/&&count>1{exit}' "$REFLECT_LOG")
-echo "$LATEST"
-echo "$NOW" > "$LAST_SURFACED"
+# If reflect-gate flagged a reflect as due, remind the user
+if [ -f "$REFLECT_DUE" ]; then
+    echo "Reflect is due. Run /reflect to consolidate recent sessions."
+    rm -f "$REFLECT_DUE"
+fi
+"""
+
+REVIEW_GATE_SH = """#!/usr/bin/env bash
+# cortex: review-gate.sh (Stop hook)
+# Writes the review-pending marker if /review hasn't run this week.
+# Always exits 0.
+
+CONCEPTS_CLI="$HOME/.cortex/concepts"
+if [ ! -f "$CONCEPTS_CLI" ]; then exit 0; fi
+
+MARKER="$HOME/.cortex-review-pending"
+NOW=$(date +%s)
+
+# Check last review-summary date
+LAST_REVIEW=$("$CONCEPTS_CLI" --root "$PWD" --json review-summary 2>/dev/null | python3 -c "
+import sys, json
+try:
+    rows = json.load(sys.stdin)
+    if rows:
+        print(rows[0].get('created_at',''))
+except: pass
+" 2>/dev/null)
+
+if [ -z "$LAST_REVIEW" ]; then
+    WEEK_START=$(python3 -c "from datetime import date,timedelta;d=date.today();print(d-timedelta(days=d.weekday()))")
+    echo "$WEEK_START" > "$MARKER"
+    exit 0
+fi
+
+# Check if last review is older than 7 days
+DAYS_SINCE=$(python3 -c "
+from datetime import datetime, timezone
+import sys
+ts = '$LAST_REVIEW'
+if ts:
+    dt = datetime.fromisoformat(ts)
+    now = datetime.now(timezone.utc)
+    print(int((now - dt).total_seconds() // 86400))
+else:
+    print(999)
+" 2>/dev/null)
+
+if [ "${DAYS_SINCE:-0}" -ge 7 ]; then
+    WEEK_START=$(python3 -c "from datetime import date,timedelta;d=date.today();print(d-timedelta(days=d.weekday()))")
+    echo "$WEEK_START" > "$MARKER"
+else
+    rm -f "$MARKER"
+fi
+
+exit 0
 """
 
 CONCEPT_EXTRACT_SH = """#!/usr/bin/env bash
@@ -220,6 +304,10 @@ def generate_hooks_config() -> dict:
                     "matcher": "",
                     "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/reflect-gate.sh"}],
                 },
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/review-gate.sh"}],
+                },
             ],
         }
     }
@@ -250,6 +338,7 @@ def install_hooks(
         "reflect-gate.sh": REFLECT_GATE_SH,
         "reflect-surface.sh": REFLECT_SURFACE_SH,
         "concept-extract.sh": CONCEPT_EXTRACT_SH,
+        "review-gate.sh": REVIEW_GATE_SH,
     }
 
     for name, content in scripts.items():
