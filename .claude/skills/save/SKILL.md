@@ -152,17 +152,17 @@ Write the proposals to `~/.cortex/last-session.json` using the Write tool:
   "workspace_root": "/absolute/path/to/workspace",
   "session_hash": "c61518a4fd94ac05",
   "weight": 5,
-  "project": "cortex",
+  "project": "my-app",
   "concepts": [
-    {"name": "session-resume", "kind": "pattern"},
-    {"name": "undercover-mode", "kind": "pattern"}
+    {"name": "retry-pattern", "kind": "pattern"},
+    {"name": "api-caching", "kind": "pattern"}
   ],
   "edges": [
-    {"from": "session-resume", "to": "cortex", "relation": "enables"},
-    {"from": "undercover-mode", "to": "public-repo-audit", "relation": "related-to"}
+    {"from": "retry-pattern", "to": "my-app", "relation": "enables"},
+    {"from": "api-caching", "to": "retry-pattern", "relation": "related-to"}
   ],
-  "proposed": ["session-resume", "undercover-mode", "public-repo-audit"],
-  "created": ["session-resume", "undercover-mode"],
+  "proposed": ["retry-pattern", "api-caching", "error-handling"],
+  "created": ["retry-pattern", "api-caching"],
   "rejected_count": 1
 }
 ```
