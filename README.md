@@ -9,23 +9,27 @@
 
 </div>
 
-## The problem
+## What this looks like in practice
 
-Every AI coding session starts from zero. You re-explain the same decisions. You forget that a pattern in one project already solved the problem in another. An idea you mentioned three times never gets acted on because nobody noticed.
+You solve a retry problem in your API project on Monday. Three weeks later you are debugging flaky requests in a different project. Cortex surfaces the connection: "retry-pattern appears in both my-api and my-app, established confidence." You already solved this. Your AI knows.
 
-The workaround is memory files, but by month three you have duplicates, contradictions, and stale context. Your AI reads all of it and none of it is reliable.
+You step away from a project for two weeks. When you come back, your session brief shows the 4 decisions that were pending, which concepts were active, and 2 sessions your AI captured while you were doing other work. No archaeology required.
 
-## What you stop losing
+You explain "always use connection pooling, not per-request connections" for the third time in a month. Cortex flags it as a re-explanation: proof that this decision is not sticking in context. Either the briefing needs adjustment or the concept needs promotion.
 
-Cortex gives you three layers that compose into a single system:
+A junior dev's memory file has 200 lines after three months: duplicates, stale entries, things that contradict each other. Your graph has 120 concepts with confidence levels. The tentative ones fade on their own. The established ones resist decay. The settled ones shape every session.
 
-**Track.** Every session is recorded automatically. When a session ends, cortex captures what changed, which concepts were touched, and how long you worked. Zero effort. Even sessions where you forget to save anything are preserved.
+## How cortex works
 
-**Structure.** `/save` routes learnings to the right place: daily notes, project context, cross-project memory, or working style observations. The knowledge graph grows with each session, connecting concepts across projects and time.
+Three layers that compose into one system:
 
-**Curate.** `/reflect` surfaces patterns you would miss: stale context, friction that keeps recurring, concepts converging across projects. `/review` triages weekly so important concepts strengthen and noise fades.
+**Track.** Every session is recorded when it ends. What changed, which concepts were active, how long you worked. This happens automatically, even when you forget to `/save`. Nothing falls through the cracks.
 
-Most tools stop at "write things down." Cortex connects what you wrote, surfaces what matters, and ages out what doesn't.
+**Structure.** `/save` routes each learning to the right destination: daily notes, project decisions, cross-project memory, or working style observations. The knowledge graph grows with each save, connecting concepts across projects and time.
+
+**Curate.** `/reflect` surfaces what you would miss on your own: stale context piling up, friction recurring across sessions, concepts converging across projects. `/review` triages weekly so important concepts strengthen and noise fades naturally.
+
+Most memory tools write things down. Cortex connects what was written, strengthens what matters, and ages out what doesn't.
 
 ```
   SESSION            /save             KNOWLEDGE GRAPH        /reflect           /review
