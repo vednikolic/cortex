@@ -2,6 +2,7 @@
 
 <div align="center">
 
+<img src="https://img.shields.io/badge/v4.0.0-FF6B6B?style=for-the-badge" />
 <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
 <img src="https://img.shields.io/badge/stdlib%20only-no%20pip-10B981?style=for-the-badge" />
 <img src="https://img.shields.io/badge/skills-save%20%2B%20reflect%20%2B%20review-8B5CF6?style=for-the-badge" />
