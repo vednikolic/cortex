@@ -11,13 +11,21 @@
 
 ## The problem
 
-Every AI coding tool forgets everything between sessions. The workaround is memory files, but those create a new problem: by month three you have duplicates, contradictions, and stale context piling up. Your AI reads all of it and none of it is reliable.
+Every AI coding session starts from zero. You re-explain the same decisions. You forget that a pattern in one project already solved the problem in another. An idea you mentioned three times never gets acted on because nobody noticed.
 
-You spend time re-explaining decisions. Your AI misses that a pattern in one project solves a problem in another. An idea you mentioned three times never gets acted on because no one noticed the pattern.
+The workaround is memory files, but by month three you have duplicates, contradictions, and stale context. Your AI reads all of it and none of it is reliable.
 
-## What cortex does
+## What you stop losing
 
-**`/save`** captures session learnings and routes them to the right place. **`/reflect`** reviews what has accumulated and surfaces patterns you would miss. **`/review`** triages signals weekly so concepts mature or get dismissed. The **concepts CLI** builds a knowledge graph across sessions so your AI connects ideas across projects and time.
+Cortex gives you three layers that compose into a single system:
+
+**Track.** Every session is recorded automatically. When a session ends, cortex captures what changed, which concepts were touched, and how long you worked. Zero effort. Even sessions where you forget to save anything are preserved.
+
+**Structure.** `/save` routes learnings to the right place: daily notes, project context, cross-project memory, or working style observations. The knowledge graph grows with each session, connecting concepts across projects and time.
+
+**Curate.** `/reflect` surfaces patterns you would miss: stale context, friction that keeps recurring, concepts converging across projects. `/review` triages weekly so important concepts strengthen and noise fades.
+
+Most tools stop at "write things down." Cortex connects what you wrote, surfaces what matters, and ages out what doesn't.
 
 ```
   SESSION            /save             KNOWLEDGE GRAPH        /reflect           /review
@@ -29,7 +37,7 @@ You spend time re-explaining decisions. Your AI misses that a pattern in one pro
   | Friction |   | MEMORY.md    |   |  auth  pool  api |   | Signals: 1      |   | Decayed: 0      |
   | Concepts |   | Learnings    |   |     \ | /        |   | Promote: 1 cand |   | Weekly synthesis |
   +----------+   +--------------+   |    my-api        |   +-----------------+   +-----------------+
-                  4 destinations     +------------------+    6 analysis passes    weekly triage
+                  4 destinations     +------------------+    7 analysis passes    weekly triage
 ```
 
 ## Where cortex fits
@@ -61,15 +69,36 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory. It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory. It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
 
 Requires an LLM coding assistant that supports `.claude/skills/` discovery. Python 3.10+ (stdlib only, no pip dependencies).
 
 ## Quick start
 
-After install, start a session in your workspace and run `/save` at the end. That's it. The knowledge graph initializes automatically on first use.
+After install, start a session in your workspace and run `/save` at the end. That's it. The knowledge graph initializes automatically on first use. Session tracking starts working immediately with no additional setup.
 
-## What happens when you /save
+## Session tracking
+
+Every session is captured automatically when it ends. You never need to remember to save.
+
+A Stop hook records the session: what changed (git diff), which files were touched, which concepts were active, and how long the session lasted. This happens on every session, including the ones where you forget to run `/save`.
+
+When you start your next session, unprocessed sessions appear in your context brief so you can see what happened since you last checked in. Over time, session records feed into `/reflect` for pattern detection: which concepts keep getting re-explained, which areas generate the most churn, where your sessions cluster.
+
+```bash
+# See recent sessions
+concepts sessions --limit 5
+
+# Check health of the tracking system
+concepts capture-health
+
+# Clean up old session detail files
+concepts capture-prune --days 30
+```
+
+Session tracking is the foundation. `/save` adds structure and routing on top. You get value from both independently, and more from both together.
+
+## What you get from /save
 
 ```
 > /save
@@ -105,9 +134,9 @@ Signals:
 
 Then it looks for signals: opportunities across projects, risk conflicts, converging needs.
 
-## What happens when you /reflect
+## What you get from /reflect
 
-Run weekly or after heavy sessions. Six analysis passes over your accumulated memory, querying the knowledge graph directly:
+Run weekly or after heavy sessions. Seven analysis passes over your accumulated memory, querying the knowledge graph directly:
 
 ```
 > /reflect
@@ -131,7 +160,7 @@ Promotion candidates:
 
 `/reflect` never modifies your files. It surfaces findings. You decide what to act on.
 
-## What happens when you /review
+## What you get from /review
 
 Run weekly. Triages accumulated signals and generates a synthesis snapshot:
 
@@ -301,7 +330,7 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
-python -m pytest tests/ -v    # 147 unit tests
+python -m pytest tests/ -v    # 218 unit tests
 ```
 
 LLM evals (requires `claude` CLI):
@@ -327,32 +356,38 @@ python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --ve
 | `concepts hot` | Most active concepts |
 | `concepts graph` | Graph summary |
 | `concepts stats --weights` | Weight distributions across extractions |
+| `concepts stats --re-explanations` | Re-explanation breakdown by failure type |
 | `concepts merge <source> <target>` | Merge two concepts |
 | `concepts correct <old> <new>` | Rename a concept |
 | `concepts undo-last` | Revert the last extraction |
 | `concepts verify` | Database integrity check |
-| `concepts reflect-prep` | Generate reflect-context.json (deprecated, /reflect queries CLI directly) |
 | `concepts review-summary` | List or create weekly summary snapshots |
 | `concepts promote <name> <level>` | Promote a concept to a higher confidence level |
 | `concepts dismiss <edge_id>` | Dismiss a false or noisy edge |
 | `concepts confidence-check` | Show promotion-eligible concepts and optionally run decay |
-| `concepts export` | Export graph to portable JSON (Phase 4) |
-| `concepts import` | Import graph from portable JSON (Phase 4) |
+| `concepts export` | Export graph to portable JSON |
+| `concepts import` | Import graph from portable JSON |
 | `concepts velocity` | Concept creation velocity per week |
 | `concepts co-occurs <name>` | Find concepts sharing common neighbors |
 | `concepts explore` | Open graph explorer in browser |
 | `concepts brief` | Generate session context brief |
-| `concepts hooks install` | Install automated review/reflect hooks |
+| `concepts capture` | Record session from git state (runs automatically via hook) |
+| `concepts capture-prune` | Clean up old session detail files |
+| `concepts capture-health` | Check session tracking health |
+| `concepts sessions` | List or filter session records |
+| `concepts re-explain` | Record a concept re-explanation event |
+| `concepts hooks install` | Install automated hooks |
+| `concepts hooks verify` | Verify hook ordering in settings.json |
 
 All commands support `--db <path>` and `--json`.
 
 ## Session resume
 
-The opening problem ("forgets everything between sessions") is solved by session resume. Every new session starts with your graph state injected automatically. Zero manual steps after install.
+Every new session starts with your graph state injected automatically. Zero manual steps after install.
 
 **How it works:** A Stop hook regenerates `cortex-brief.md` from your graph when each session ends (write-on-close). A SessionStart fallback regenerates if the file is stale or missing (verify-on-open). The installer adds `@cortex-brief.md` to your CLAUDE.md, which includes the brief in every session context.
 
-**What the brief contains:** active projects, top concepts, last session's extractions, pending promotions, and graph stats. Young graphs (< 20 concepts) get a condensed format. Empty graphs get a placeholder.
+**What the brief contains:** active projects, top concepts, last session's extractions, pending promotions, graph stats, and unprocessed sessions that were captured but not yet saved. Young graphs (< 20 concepts) get a condensed format. Empty graphs get a placeholder.
 
 Use `concepts brief --json` to pipe graph state into custom scripts, CI checks, or other AI tools.
 
@@ -363,8 +398,10 @@ If the brief seems stale, debug with `concepts brief --verbose --output cortex-b
 ```mermaid
 flowchart TB
     session["Coding session"]
+    session -->|"auto-capture"| capture["Session record"]
     session -->|"/save"| db[("concepts.db")]
     session -->|"route learnings"| files["Workspace files"]
+    capture --> db
     db -->|"/reflect"| signals["Signals"]
 
     signals -->|"/review"| triage["Promote · Dismiss · Defer"]
@@ -380,8 +417,9 @@ flowchart TB
 
 Solid lines are live today. Dashed lines are planned.
 
+- **Session tracking** (live): Every session is recorded automatically via Stop hook. Captures git diff, concept activity, and session duration. Unprocessed sessions surface in the next session brief
 - **Graph explorer** (live): D3 force-directed visualization with search, filters, temporal replay, and correction affordances. Run `concepts explore` to open in browser
-- **Automated hooks** (live): SessionStart and Stop hooks surface review reminders and trigger reflect passes. Run `concepts hooks install` to enable
+- **Automated hooks** (live): SessionStart and Stop hooks surface review reminders, trigger reflect passes, and capture sessions. Run `concepts hooks install` to enable
 - **Session resume** (live): Write-on-close, verify-on-open brief generation. See section above
 - **Platform API**: Local HTTP API with MCP adapter so any AI coding agent can query your graph
 - **Cortex profile**: Gravity scores measure concept centrality. Your profile emerges from what you build, not what you declare

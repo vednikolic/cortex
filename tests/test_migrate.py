@@ -6,16 +6,18 @@ from cortex_lib.db import init_db, connect, SCHEMA_VERSION
 from cortex_lib.migrate import migrate_v1_to_v2, get_schema_version, run_migrations
 
 
-def test_fresh_init_creates_v2_schema(tmp_path):
-    """New databases start at version 2."""
+def test_fresh_init_creates_v3_schema(tmp_path):
+    """New databases start at version 3."""
     db_path = tmp_path / "fresh.db"
     conn = init_db(db_path)
     version = get_schema_version(conn)
-    assert version == "2"
+    assert version == "3"
     tables = {r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()}
     assert 'weekly_summaries' in tables
+    assert 'sessions' in tables
+    assert 're_explanations' in tables
     conn.close()
 
 
@@ -84,9 +86,9 @@ def test_migration_is_idempotent(tmp_path):
     db_path = tmp_path / "idem.db"
     conn = init_db(db_path)
     version_before = get_schema_version(conn)
-    run_migrations(conn)  # already at v2, should be a no-op
+    run_migrations(conn)  # already at v3, should be a no-op
     version_after = get_schema_version(conn)
-    assert version_before == version_after == "2"
+    assert version_before == version_after == "3"
     conn.close()
 
 
@@ -104,5 +106,5 @@ def test_run_migrations_upgrades_from_v1(tmp_path):
     conn.commit()
 
     run_migrations(conn)
-    assert get_schema_version(conn) == "2"
+    assert get_schema_version(conn) == "3"
     conn.close()

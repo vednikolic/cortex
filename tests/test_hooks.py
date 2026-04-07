@@ -6,6 +6,7 @@ from pathlib import Path
 from cortex_lib.hooks import (
     generate_hooks_config, install_hooks,
     REVIEW_CHECK_SH, REFLECT_GATE_SH, CONCEPT_EXTRACT_SH,
+    SESSION_INIT_SH, SESSION_CAPTURE_SH,
 )
 
 
@@ -72,8 +73,8 @@ def test_concept_extract_script_content():
     assert "log-extraction" in CONCEPT_EXTRACT_SH
 
 
-def test_concept_extract_hook_ordering():
-    """concept-extract.sh runs before brief-write.sh in Stop hooks."""
+def test_stop_hook_ordering():
+    """Stop hooks run in correct order: capture, extract, brief, reflect, review."""
     config = generate_hooks_config()
     stop_hooks = config["hooks"]["Stop"]
     commands = []
@@ -81,12 +82,73 @@ def test_concept_extract_hook_ordering():
         for h in entry["hooks"]:
             commands.append(h["command"])
 
+    capture_idx = next(i for i, c in enumerate(commands) if "session-capture" in c)
     extract_idx = next(i for i, c in enumerate(commands) if "concept-extract" in c)
     brief_idx = next(i for i, c in enumerate(commands) if "brief-write" in c)
     reflect_idx = next(i for i, c in enumerate(commands) if "reflect-gate" in c)
+    review_idx = next(i for i, c in enumerate(commands) if "review-gate" in c)
 
+    assert capture_idx < extract_idx, "session-capture must run before concept-extract"
     assert extract_idx < brief_idx, "concept-extract must run before brief-write"
     assert brief_idx < reflect_idx, "brief-write must run before reflect-gate"
+    assert reflect_idx < review_idx, "reflect-gate must run before review-gate"
+
+
+def test_session_start_hook_ordering():
+    """SessionStart hooks: session-init first, brief-inject last."""
+    config = generate_hooks_config()
+    hooks = config["hooks"]["SessionStart"]
+    commands = []
+    for entry in hooks:
+        for h in entry["hooks"]:
+            commands.append(h["command"])
+
+    init_idx = next(i for i, c in enumerate(commands) if "session-init" in c)
+    inject_idx = next(i for i, c in enumerate(commands) if "brief-inject" in c)
+
+    assert init_idx == 0, "session-init must be first SessionStart hook"
+    assert inject_idx == len(commands) - 1, "brief-inject must be last SessionStart hook"
+
+
+def test_session_init_script_content():
+    """session-init.sh writes session-start JSON with HEAD ref and memory hash."""
+    assert '#!/usr/bin/env bash' in SESSION_INIT_SH
+    assert 'session-start' in SESSION_INIT_SH
+    assert 'head_ref' in SESSION_INIT_SH
+    assert 'memory_snapshot_hash' in SESSION_INIT_SH
+    assert 'concepts_loaded' in SESSION_INIT_SH
+    assert 'exit 0' in SESSION_INIT_SH
+
+
+def test_session_capture_script_content():
+    """session-capture.sh reads session-start and calls concepts capture."""
+    assert '#!/usr/bin/env bash' in SESSION_CAPTURE_SH
+    assert 'session-start' in SESSION_CAPTURE_SH
+    assert 'concepts' in SESSION_CAPTURE_SH
+    assert 'capture' in SESSION_CAPTURE_SH
+    assert '.memory-config' in SESSION_CAPTURE_SH
+    assert 'exit 0' in SESSION_CAPTURE_SH
+
+
+def test_concept_extract_upgrades_session_status():
+    """concept-extract.sh reads current-session-hash and upgrades to saved."""
+    assert 'current-session-hash' in CONCEPT_EXTRACT_SH
+    assert 'update-status' in CONCEPT_EXTRACT_SH
+    assert 'saved' in CONCEPT_EXTRACT_SH
+    assert 'enrich-queue' in CONCEPT_EXTRACT_SH
+
+
+def test_install_hooks_includes_new_scripts(tmp_path):
+    """install_hooks writes session-init.sh and session-capture.sh."""
+    scripts_dir = tmp_path / "scripts"
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text("{}")
+
+    result = install_hooks(scripts_dir=scripts_dir, settings_path=settings_path)
+    assert "session-init.sh" in result["scripts_installed"]
+    assert "session-capture.sh" in result["scripts_installed"]
+    assert (scripts_dir / "session-init.sh").exists()
+    assert (scripts_dir / "session-capture.sh").exists()
 
 
 def test_install_hooks_includes_concept_extract(tmp_path):

@@ -21,6 +21,11 @@ from .review import (
 from .confidence import promote_concept, check_promotion_eligibility, apply_confidence_decay
 from .portability import export_graph, import_graph
 from .brief import generate_brief, format_brief
+from .capture import (
+    capture_session, capture_prune, capture_health,
+    query_sessions, format_session_oneline, update_session_status,
+    record_re_explanation, re_explanation_stats,
+)
 
 
 def _resolve_db(args) -> Path:
@@ -246,19 +251,32 @@ def cmd_verify(args):
 def cmd_stats(args):
     conn = _connect(args)
     try:
-        s = graph_summary(conn)
-        ws = weight_stats(conn)
-        if args.json:
-            print(json.dumps({'graph': s, 'weights': ws}))
+        if args.re_explanations:
+            stats = re_explanation_stats(conn, days=args.days or 30)
+            if args.json:
+                print(json.dumps(stats))
+            else:
+                print(f"Re-explanations (last {stats['days']} days): {stats['total']}")
+                print(f"  Surfacing misses: {stats['surfacing_miss']}")
+                print(f"  Capture misses: {stats['capture_miss']}")
+                if stats['top_concepts']:
+                    print("  Most re-explained:")
+                    for t in stats['top_concepts'][:5]:
+                        print(f"    {t['name']} ({t['failure_type']}): {t['cnt']}x")
         else:
-            print(f"Graph: {s['concepts']} concepts, {s['edges']} edges, "
-                  f"{s['projects']} projects")
-            if args.weights and ws['by_weight']:
-                print(f"\nWeight distribution ({ws['total_extractions']} extractions):")
-                for w in ws['by_weight']:
-                    print(f"  Weight {w['weight']}: {w['cnt']} extractions, "
-                          f"avg {w['avg_concepts']:.1f} concepts, "
-                          f"avg {w['avg_rejected']:.1f} rejected")
+            s = graph_summary(conn)
+            ws = weight_stats(conn)
+            if args.json:
+                print(json.dumps({'graph': s, 'weights': ws}))
+            else:
+                print(f"Graph: {s['concepts']} concepts, {s['edges']} edges, "
+                      f"{s['projects']} projects")
+                if args.weights and ws['by_weight']:
+                    print(f"\nWeight distribution ({ws['total_extractions']} extractions):")
+                    for w in ws['by_weight']:
+                        print(f"  Weight {w['weight']}: {w['cnt']} extractions, "
+                              f"avg {w['avg_concepts']:.1f} concepts, "
+                              f"avg {w['avg_rejected']:.1f} rejected")
     finally:
         conn.close()
     return 0
@@ -509,6 +527,137 @@ def cmd_explore(args):
     return 0
 
 
+def cmd_capture(args):
+    conn = _connect(args)
+    try:
+        files = args.files.split(',') if args.files else []
+        commits = args.commits.split(',') if args.commits else []
+        session_start_path = Path(args.session_start) if args.session_start else None
+        result = capture_session(
+            conn, files=files, commits=commits,
+            project=args.project or '', branch=args.branch or '',
+            duration_seconds=args.duration,
+            session_start_path=session_start_path,
+        )
+        if args.json:
+            print(json.dumps(result))
+        else:
+            if result['action'] == 'skipped':
+                print(f"Session {result['session_hash']} already captured (idempotent)")
+            elif result['action'] == 'incomplete':
+                print(f"Session {result['session_hash']} recorded (incomplete, no session-start)")
+            else:
+                matched = ', '.join(result['matched_concepts']) or 'none'
+                print(f"Captured session {result['session_hash']}: "
+                      f"{len(result['matched_concepts'])} concepts matched ({matched})")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_capture_prune(args):
+    conn = _connect(args)
+    try:
+        result = capture_prune(conn, days=args.days)
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(f"Pruned {result['pruned_details']} detail files, "
+                  f"{result['pruned_queue']} queue files "
+                  f"({result['sessions_affected']} sessions)")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_sessions(args):
+    conn = _connect(args)
+    try:
+        if args.update_status:
+            parts = args.update_status
+            if len(parts) != 2:
+                print("Error: --update-status requires <hash> <status>", file=sys.stderr)
+                return 1
+            result = update_session_status(conn, parts[0], parts[1])
+            if args.json:
+                print(json.dumps(result))
+            else:
+                print(f"Updated {result['session_hash']}: "
+                      f"{result['old_status']} -> {result['new_status']}")
+        else:
+            sessions = query_sessions(
+                conn,
+                status=args.status,
+                project=args.project,
+                since=args.since,
+                limit=args.limit,
+            )
+            if args.json:
+                print(json.dumps(sessions, default=str))
+            elif args.oneline:
+                for s in sessions:
+                    print(format_session_oneline(s))
+            elif not sessions:
+                print("No sessions found.")
+            else:
+                for s in sessions:
+                    matched = json.loads(s.get('matched_concepts', '[]'))
+                    mc_str = f" ({', '.join(matched)})" if matched else ""
+                    print(f"{s['session_hash'][:8]} | {s['project']} | "
+                          f"{s['timestamp'][:16]} | {s['status']}{mc_str}")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_re_explain(args):
+    conn = _connect(args)
+    try:
+        result = record_re_explanation(
+            conn,
+            concept_name=args.concept_name,
+            session_hash=args.session,
+            detection_method=args.method,
+            prior_count=args.prior_count,
+            prior_confidence=args.prior_confidence,
+            was_in_brief=args.was_in_brief,
+            failure_type=args.failure_type,
+        )
+        if args.json:
+            print(json.dumps(result))
+        else:
+            print(f"Re-explanation recorded: {result['concept']} "
+                  f"({result['failure_type']}, session {result['session_hash'][:8]})")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_capture_health(args):
+    conn = _connect(args)
+    try:
+        result = capture_health(conn)
+        if args.json:
+            print(json.dumps(result))
+        else:
+            status = "healthy" if result['healthy'] else "issues detected"
+            print(f"Capture health: {status}")
+            if result['last_capture']:
+                print(f"  Last capture: {result['last_capture'][:16]}")
+            else:
+                print("  Last capture: none")
+            if result['sessions_7d']:
+                parts = [f"{k}: {v}" for k, v in sorted(result['sessions_7d'].items())]
+                print(f"  Last 7 days: {', '.join(parts)}")
+            if result['missing_details']:
+                print(f"  Missing detail files: {len(result['missing_details'])}")
+            if result['orphaned_queue']:
+                print(f"  Orphaned queue entries: {len(result['orphaned_queue'])}")
+    finally:
+        conn.close()
+    return 0
+
+
 def cmd_hooks(args):
     if args.action == "install":
         from .hooks import install_hooks
@@ -521,12 +670,25 @@ def cmd_hooks(args):
         from .hooks import generate_hooks_config
         scripts_dir = Path.home() / ".claude" / "scripts"
         config = generate_hooks_config()
-        for event, hooks in config["hooks"].items():
-            for h in hooks:
-                script_name = h["command"].split("/")[-1]
+        for event, hooks_list in config["hooks"].items():
+            for h in hooks_list:
+                cmd = h.get("hooks", [{}])[0].get("command", "") if "hooks" in h else h.get("command", "")
+                script_name = cmd.split("/")[-1]
                 installed = (scripts_dir / script_name).exists()
-                status = "installed" if installed else "missing"
-                print(f"  {event}: {script_name} [{status}]")
+                status_str = "installed" if installed else "missing"
+                print(f"  {event}: {script_name} [{status_str}]")
+    elif args.action == "verify":
+        from .hooks import hooks_verify
+        result = hooks_verify()
+        if args.json:
+            print(json.dumps(result))
+        elif result['valid']:
+            print("Hook ordering verified: all hooks in correct order.")
+        else:
+            print("Hook ordering issues found:")
+            for issue in result['issues']:
+                print(f"  {issue}")
+            return 1
     return 0
 
 
@@ -598,6 +760,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser('stats', help='Show statistics and weight distributions')
     p.add_argument('--weights', action='store_true', help='Show weight distributions')
+    p.add_argument('--re-explanations', dest='re_explanations', action='store_true',
+                   help='Show re-explanation stats by failure type')
+    p.add_argument('--days', type=int, help='Days to analyze (default: 30)')
     p.set_defaults(func=cmd_stats)
 
     p = sub.add_parser('log-extraction', help='Log an extraction event')
@@ -650,10 +815,53 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--no-browser', action='store_true', help='Do not open browser')
     p.set_defaults(func=cmd_explore)
 
-    p = sub.add_parser('hooks', help='Install or check cortex hooks')
-    p.add_argument('action', choices=['install', 'status'],
-                   help='install: add hooks to settings.json; status: check installation')
+    p = sub.add_parser('hooks', help='Install, check, or verify cortex hooks')
+    p.add_argument('action', choices=['install', 'status', 'verify'],
+                   help='install: add hooks; status: check installation; verify: check ordering')
     p.set_defaults(func=cmd_hooks)
+
+    p = sub.add_parser('capture', help='Record a session from git state')
+    p.add_argument('--files', help='Comma-separated list of modified files')
+    p.add_argument('--commits', help='Comma-separated list of hash:message pairs')
+    p.add_argument('--project', help='Project name')
+    p.add_argument('--branch', help='Current git branch')
+    p.add_argument('--duration', type=int, help='Session duration in seconds')
+    p.add_argument('--session-start', help='Path to session-start context file')
+    p.set_defaults(func=cmd_capture)
+
+    p = sub.add_parser('capture-prune', help='Remove old session detail files')
+    p.add_argument('--days', type=int, default=3, help='Remove files older than N days (default: 3)')
+    p.set_defaults(func=cmd_capture_prune)
+
+    p = sub.add_parser('capture-health', help='Report session tracking health')
+    p.set_defaults(func=cmd_capture_health)
+
+    p = sub.add_parser('sessions', help='List or update session records')
+    p.add_argument('--status', choices=['raw', 'enriched', 'saved'],
+                   help='Filter by status')
+    p.add_argument('--project', help='Filter by project')
+    p.add_argument('--since', help='Filter sessions since date (ISO format)')
+    p.add_argument('--limit', type=int, default=50, help='Maximum results (default: 50)')
+    p.add_argument('--oneline', action='store_true', help='Brief one-line format')
+    p.add_argument('--update-status', nargs=2, metavar=('HASH', 'STATUS'),
+                   help='Update session status: <hash> <status>')
+    p.set_defaults(func=cmd_sessions)
+
+    p = sub.add_parser('re-explain', help='Record a concept re-explanation event')
+    p.add_argument('concept_name', help='Concept that was re-explained')
+    p.add_argument('--session', required=True, help='Session hash')
+    p.add_argument('--method', required=True, choices=['save', 'reflect'],
+                   help='Detection method')
+    p.add_argument('--prior-count', type=int, required=True,
+                   help='Prior source count')
+    p.add_argument('--prior-confidence', required=True,
+                   help='Prior confidence level')
+    p.add_argument('--was-in-brief', action='store_true',
+                   help='Concept was in the session brief')
+    p.add_argument('--failure-type', default='capture_miss',
+                   choices=['surfacing_miss', 'capture_miss'],
+                   help='Type of failure (default: capture_miss)')
+    p.set_defaults(func=cmd_re_explain)
 
     p = sub.add_parser('brief', help='Generate session context brief')
     p.add_argument('--output', '-o', help='Write brief to file (default: stdout)')

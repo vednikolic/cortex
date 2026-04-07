@@ -264,6 +264,68 @@ def test_cli_brief_empty_db(tmp_path):
     assert 'No sessions recorded yet' in output
 
 
+# -- Unprocessed sessions tests --
+
+def test_unprocessed_sessions_in_brief(db):
+    """Raw sessions appear in the brief as unprocessed."""
+    # Need 20+ concepts for full mode
+    distinct_names = [
+        'python', 'javascript', 'kubernetes', 'postgresql', 'terraform',
+        'docker', 'graphql', 'typescript', 'mongodb', 'elasticsearch',
+        'redis', 'nginx', 'fastapi', 'django', 'flask',
+        'pytorch', 'pandas', 'numpy', 'scipy', 'matplotlib',
+    ]
+    for name in distinct_names:
+        upsert_concept(db, name, kind='tool')
+
+    # Add a raw session
+    db.execute(
+        "INSERT INTO sessions (session_hash, timestamp, project, status, "
+        "files, commits, duration_seconds) "
+        "VALUES ('raw1', '2026-04-07T10:00:00+00:00', 'project-alpha', 'raw', "
+        "'[\"src/lib/ops.py\"]', '[\"a1b feat: add thing\"]', 2700)"
+    )
+    db.commit()
+
+    data = generate_brief(db)
+    assert 'unprocessed_sessions' in data
+    assert len(data['unprocessed_sessions']) == 1
+
+    output = format_brief(data)
+    assert 'Recent unprocessed' in output
+    assert 'project-alpha' in output
+
+
+def test_no_unprocessed_when_clean(db):
+    """No unprocessed section when all sessions are enriched/saved."""
+    for name in ['alpha', 'beta']:
+        upsert_concept(db, name, kind='topic')
+
+    db.execute(
+        "INSERT INTO sessions (session_hash, timestamp, project, status) "
+        "VALUES ('sess1', '2026-04-07T10:00:00+00:00', 'project-alpha', 'saved')"
+    )
+    db.commit()
+
+    data = generate_brief(db)
+    assert 'unprocessed_sessions' not in data
+
+
+def test_unprocessed_sessions_max_3(db):
+    """At most 3 unprocessed sessions appear."""
+    upsert_concept(db, 'placeholder', kind='topic')
+    for i in range(5):
+        db.execute(
+            "INSERT INTO sessions (session_hash, timestamp, project, status) "
+            "VALUES (?, ?, 'project-alpha', 'raw')",
+            (f'sess{i}', f'2026-04-0{i+1}T10:00:00+00:00')
+        )
+    db.commit()
+
+    data = generate_brief(db)
+    assert len(data.get('unprocessed_sessions', [])) <= 3
+
+
 # -- Hook tests --
 
 def test_hooks_config_includes_brief():

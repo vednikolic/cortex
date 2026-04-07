@@ -169,7 +169,7 @@ else
 fi
 
 # Self-test: verify hook scripts
-for script in concept-extract.sh brief-write.sh brief-inject.sh review-check.sh reflect-gate.sh reflect-surface.sh; do
+for script in session-init.sh session-capture.sh concept-extract.sh brief-write.sh brief-inject.sh review-check.sh reflect-gate.sh reflect-surface.sh review-gate.sh; do
     if [ -f "$HOME/.claude/scripts/$script" ]; then
         echo "  PASS: $script installed"
         test_passed=$((test_passed + 1))

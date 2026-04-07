@@ -9,6 +9,7 @@ import sqlite3
 from datetime import datetime, timezone, timedelta
 
 from .analysis import hot_concepts, graph_summary
+from .capture import query_sessions, format_session_oneline
 from .confidence import check_promotion_eligibility
 
 # Brief should stay under ~200 tokens to avoid bloating session context
@@ -93,6 +94,11 @@ def generate_brief(conn: sqlite3.Connection) -> dict:
             for e in eligible
         ]
 
+    # Recent unprocessed sessions (max 3, raw status only)
+    raw_sessions = query_sessions(conn, status='raw', limit=3)
+    if raw_sessions:
+        result['unprocessed_sessions'] = raw_sessions
+
     return result
 
 
@@ -156,6 +162,12 @@ def format_brief(data: dict) -> str:
         names = [p['name'] for p in promos[:3]]
         suffix = f" (+{len(promos) - 3} more)" if len(promos) > 3 else ""
         lines.append(f"**Pending promotions:** {', '.join(names)}{suffix}")
+
+    # Recent unprocessed sessions
+    unprocessed = data.get('unprocessed_sessions', [])
+    if unprocessed:
+        entries = [format_session_oneline(s) for s in unprocessed]
+        lines.append(f"**Recent unprocessed:** {' | '.join(entries)}")
 
     # Graph stats
     lines.append(

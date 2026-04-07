@@ -5,6 +5,161 @@ from pathlib import Path
 from typing import Optional
 
 
+SESSION_INIT_SH = """#!/usr/bin/env bash
+# cortex: session-init.sh (SessionStart hook)
+# Writes context snapshot for session tracking.
+# Records HEAD ref, MEMORY.md hash, and concepts from brief.
+
+SESSION_START="$HOME/.cortex/session-start"
+mkdir -p "$HOME/.cortex"
+
+HEAD_REF=$(git rev-parse HEAD 2>/dev/null || echo "")
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# Hash MEMORY.md content (discover path from current project)
+MEMORY_PATH=""
+PROJECT_HASH=$(echo -n "$PWD" | sed 's|/|-|g')
+CANDIDATE="$HOME/.claude/projects/$PROJECT_HASH/memory/MEMORY.md"
+if [ -f "$CANDIDATE" ]; then
+    MEMORY_PATH="$CANDIDATE"
+fi
+if [ -n "$MEMORY_PATH" ]; then
+    MEMORY_HASH=$(shasum "$MEMORY_PATH" | cut -d' ' -f1)
+else
+    MEMORY_HASH=""
+fi
+
+# Extract concept names from cortex-brief.md (Hot concepts and Active projects)
+CONCEPTS_LOADED="[]"
+BRIEF_PATH="cortex-brief.md"
+if [ -f "$BRIEF_PATH" ]; then
+    CONCEPTS_LOADED=$(python3 -c "
+import re, json, sys
+concepts = []
+try:
+    text = open('$BRIEF_PATH').read()
+    for line in text.splitlines():
+        if '**Hot concepts:**' in line:
+            matches = re.findall(r'([a-z][a-z0-9_-]+)\\s*\\(', line)
+            concepts.extend(matches)
+        if '**Active projects:**' in line:
+            projects = line.split(':**')[1].strip() if ':**' in line else ''
+            for p in projects.split(','):
+                p = p.strip()
+                if p:
+                    concepts.append(p)
+except Exception:
+    pass
+print(json.dumps(sorted(set(concepts))))
+" 2>/dev/null || echo "[]")
+fi
+
+# Hash each non-empty line in MEMORY.md
+MEMORY_ENTRIES="[]"
+if [ -f "$MEMORY_PATH" ]; then
+    MEMORY_ENTRIES=$(python3 -c "
+import hashlib, json
+entries = []
+try:
+    with open('$MEMORY_PATH') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                entries.append(hashlib.sha1(line.encode()).hexdigest()[:12])
+except Exception:
+    pass
+print(json.dumps(entries))
+" 2>/dev/null || echo "[]")
+fi
+
+python3 -c "
+import json
+data = {
+    'timestamp': '$TIMESTAMP',
+    'head_ref': '$HEAD_REF',
+    'memory_snapshot_hash': '$MEMORY_HASH',
+    'concepts_loaded': $CONCEPTS_LOADED,
+    'memory_entries_loaded': $MEMORY_ENTRIES,
+}
+with open('$SESSION_START', 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null
+
+exit 0
+"""
+
+SESSION_CAPTURE_SH = """#!/usr/bin/env bash
+# cortex: session-capture.sh (Stop hook)
+# Reads session-start, computes git diff, calls concepts capture.
+# Always exits 0.
+
+SESSION_START="$HOME/.cortex/session-start"
+CONCEPTS_CLI="$HOME/.cortex/concepts"
+
+if [ ! -f "$CONCEPTS_CLI" ]; then exit 0; fi
+if [ ! -f ".memory-config" ]; then exit 0; fi
+
+# Compute git diff against stored HEAD
+FILES=""
+COMMITS=""
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+DURATION=""
+
+if [ -f "$SESSION_START" ]; then
+    START_HEAD=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$SESSION_START'))
+    print(d.get('head_ref', ''))
+except: pass
+" 2>/dev/null)
+
+    START_TS=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$SESSION_START'))
+    print(d.get('timestamp', ''))
+except: pass
+" 2>/dev/null)
+
+    if [ -n "$START_HEAD" ]; then
+        FILES=$(git diff --name-only "$START_HEAD" 2>/dev/null | tr '\\n' ',' | sed 's/,$//')
+        COMMITS=$(git log --oneline "$START_HEAD..HEAD" 2>/dev/null | tr '\\n' ',' | sed 's/,$//')
+    fi
+
+    if [ -n "$START_TS" ]; then
+        NOW=$(date -u +%s)
+        START_EPOCH=$(date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$START_TS" +%s 2>/dev/null || echo "")
+        if [ -n "$START_EPOCH" ]; then
+            DURATION=$((NOW - START_EPOCH))
+        fi
+    fi
+fi
+
+# Detect project from .memory-config or directory name
+PROJECT=$(python3 -c "
+try:
+    with open('.memory-config') as f:
+        for line in f:
+            if line.startswith('workspace:'):
+                print(line.split(':',1)[1].strip())
+                break
+except: pass
+" 2>/dev/null)
+if [ -z "$PROJECT" ]; then
+    PROJECT=$(basename "$PWD")
+fi
+
+ARGS="--project $PROJECT --branch $BRANCH --session-start $SESSION_START"
+if [ -n "$FILES" ]; then ARGS="$ARGS --files $FILES"; fi
+if [ -n "$COMMITS" ]; then ARGS="$ARGS --commits $COMMITS"; fi
+if [ -n "$DURATION" ]; then ARGS="$ARGS --duration $DURATION"; fi
+
+"$CONCEPTS_CLI" --root "$PWD" capture $ARGS 2>/dev/null
+
+exit 0
+"""
+
 REVIEW_CHECK_SH = """#!/usr/bin/env bash
 # cortex: review-check.sh (SessionStart hook)
 # Surfaces a reminder if /review has not run this week.
@@ -211,6 +366,7 @@ CONCEPT_EXTRACT_SH = """#!/usr/bin/env bash
 # cortex: concept-extract.sh (Stop hook)
 # Executes queued concept extractions from /save.
 # Reads ~/.cortex/last-session.json, runs CLI upserts and edges, cleans up.
+# If /save ran, upgrades session status to saved and removes enrich-queue file.
 # Silent on success. Only prints on error.
 
 SESSION_FILE="$HOME/.cortex/last-session.json"
@@ -223,7 +379,7 @@ if [ ! -f "$CONCEPTS_CLI" ]; then
 fi
 
 python3 -c '
-import json, subprocess, sys
+import json, subprocess, sys, os
 
 session_file = sys.argv[1]
 concepts_cli = sys.argv[2]
@@ -275,6 +431,21 @@ r = subprocess.run(
 if r.returncode != 0:
     errors += 1
 
+# Upgrade session status to saved
+hash_file = os.path.expanduser("~/.cortex/current-session-hash")
+if os.path.exists(hash_file):
+    session_hash = open(hash_file).read().strip()
+    if session_hash:
+        subprocess.run(
+            [concepts_cli, "--root", root, "sessions",
+             "--update-status", session_hash, "saved"],
+            capture_output=True
+        )
+        # Remove enrich-queue file
+        queue_file = os.path.expanduser("~/.cortex/enrich-queue/" + session_hash + ".json")
+        if os.path.exists(queue_file):
+            os.remove(queue_file)
+
 if errors > 0:
     print("cortex: concept-extract: " + str(errors) + " command(s) failed", file=sys.stderr)
 ' "$SESSION_FILE" "$CONCEPTS_CLI"
@@ -283,18 +454,48 @@ rm -f "$SESSION_FILE"
 """
 
 
+EXPECTED_HOOK_ORDER = {
+    "SessionStart": [
+        "session-init.sh",
+        "review-check.sh",
+        "reflect-surface.sh",
+        "brief-inject.sh",
+    ],
+    "Stop": [
+        "session-capture.sh",
+        "concept-extract.sh",
+        "brief-write.sh",
+        "reflect-gate.sh",
+        "review-gate.sh",
+    ],
+}
+
+
 def generate_hooks_config() -> dict:
     """Generate the hooks configuration for settings.json.
 
     Uses the {matcher, hooks[]} schema required by the hooks system (as of 2026-04).
     Each entry wraps one command in a matcher object with empty string (match all).
+
+    Hook ordering (SessionStart):
+      1. session-init.sh    (context snapshot + HEAD ref)
+      2. review-check.sh    (review reminder)
+      3. reflect-surface.sh (reflect findings/reminder)
+      4. brief-inject.sh    (brief regeneration, depends on session data)
+
+    Hook ordering (Stop):
+      1. session-capture.sh  (always runs, calls concepts capture)
+      2. concept-extract.sh  (processes /save output, upgrades status)
+      3. brief-write.sh      (regenerates brief)
+      4. reflect-gate.sh     (checks if /reflect is due)
+      5. review-gate.sh      (checks if /review is due)
     """
     return {
         "hooks": {
             "SessionStart": [
                 {
                     "matcher": "",
-                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/brief-inject.sh"}],
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/session-init.sh"}],
                 },
                 {
                     "matcher": "",
@@ -304,8 +505,16 @@ def generate_hooks_config() -> dict:
                     "matcher": "",
                     "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/reflect-surface.sh"}],
                 },
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/brief-inject.sh"}],
+                },
             ],
             "Stop": [
+                {
+                    "matcher": "",
+                    "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/session-capture.sh"}],
+                },
                 {
                     "matcher": "",
                     "hooks": [{"type": "command", "command": "bash ~/.claude/scripts/concept-extract.sh"}],
@@ -327,6 +536,68 @@ def generate_hooks_config() -> dict:
     }
 
 
+def hooks_verify(settings_path: Optional[Path] = None) -> dict:
+    """Verify hook ordering in settings.json matches expected sequence.
+
+    Returns dict with 'valid' bool and list of 'issues'.
+    """
+    if settings_path is None:
+        settings_path = Path.home() / ".claude" / "settings.json"
+
+    issues = []
+    if not settings_path.exists():
+        return {'valid': False, 'issues': ['settings.json not found']}
+
+    try:
+        settings = json.loads(settings_path.read_text())
+    except json.JSONDecodeError:
+        return {'valid': False, 'issues': ['settings.json is not valid JSON']}
+
+    hooks = settings.get('hooks', {})
+
+    for event, expected_scripts in EXPECTED_HOOK_ORDER.items():
+        if event not in hooks:
+            issues.append(f"Missing event: {event}")
+            continue
+
+        # Extract script names from settings
+        actual_scripts = []
+        for entry in hooks[event]:
+            cmd = ''
+            if 'hooks' in entry and isinstance(entry['hooks'], list):
+                for h in entry['hooks']:
+                    cmd = h.get('command', '')
+            elif 'command' in entry:
+                cmd = entry['command']
+            # Extract script name from command
+            if cmd:
+                script = cmd.split('/')[-1]
+                actual_scripts.append(script)
+
+        # Check for missing hooks
+        for script in expected_scripts:
+            if script not in actual_scripts:
+                issues.append(f"{event}: missing hook {script}")
+
+        # Check ordering (only for hooks that exist)
+        expected_present = [s for s in expected_scripts if s in actual_scripts]
+        actual_present = [s for s in actual_scripts if s in expected_scripts]
+        if expected_present != actual_present:
+            issues.append(
+                f"{event}: ordering mismatch. "
+                f"Expected: {', '.join(expected_present)}. "
+                f"Got: {', '.join(actual_present)}"
+            )
+
+        # Check for unknown hooks
+        known = set(expected_scripts)
+        for script in actual_scripts:
+            if script not in known:
+                issues.append(f"{event}: unknown hook {script}")
+
+    return {'valid': len(issues) == 0, 'issues': issues}
+
+
 def install_hooks(
     scripts_dir: Optional[Path] = None,
     settings_path: Optional[Path] = None,
@@ -346,6 +617,8 @@ def install_hooks(
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     scripts = {
+        "session-init.sh": SESSION_INIT_SH,
+        "session-capture.sh": SESSION_CAPTURE_SH,
         "brief-write.sh": BRIEF_WRITE_SH,
         "brief-inject.sh": BRIEF_INJECT_SH,
         "review-check.sh": REVIEW_CHECK_SH,

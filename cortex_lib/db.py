@@ -7,7 +7,7 @@ from typing import Optional
 
 from .migrate import run_migrations, get_schema_version
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS concepts (
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS schema_meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '2');
+INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '3');
 
 CREATE TABLE IF NOT EXISTS weekly_summaries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,6 +99,42 @@ CREATE TABLE IF NOT EXISTS weekly_summaries (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_weekly_summaries_week ON weekly_summaries(week_start);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_hash          TEXT UNIQUE NOT NULL,
+    timestamp             TEXT NOT NULL,
+    project               TEXT NOT NULL DEFAULT '',
+    branch                TEXT DEFAULT '',
+    duration_seconds      INTEGER,
+    files                 TEXT DEFAULT '[]',
+    commits               TEXT DEFAULT '[]',
+    matched_concepts      TEXT DEFAULT '[]',
+    memory_snapshot_hash  TEXT,
+    concepts_loaded       TEXT,
+    memory_entries_loaded TEXT,
+    status                TEXT NOT NULL DEFAULT 'raw'
+                          CHECK(status IN ('raw', 'enriched', 'saved')),
+    enriched_at           TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project);
+CREATE INDEX IF NOT EXISTS idx_sessions_timestamp ON sessions(timestamp);
+
+CREATE TABLE IF NOT EXISTS re_explanations (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    concept_id         INTEGER NOT NULL REFERENCES concepts(id),
+    session_hash       TEXT NOT NULL REFERENCES sessions(session_hash),
+    timestamp          TEXT NOT NULL,
+    prior_source_count INTEGER NOT NULL,
+    prior_confidence   TEXT NOT NULL,
+    was_in_brief       INTEGER NOT NULL DEFAULT 0,
+    failure_type       TEXT NOT NULL DEFAULT 'capture_miss'
+                       CHECK(failure_type IN ('surfacing_miss', 'capture_miss')),
+    detection_method   TEXT NOT NULL CHECK(detection_method IN ('save', 'reflect'))
+);
+CREATE INDEX IF NOT EXISTS idx_reexpl_concept ON re_explanations(concept_id);
+CREATE INDEX IF NOT EXISTS idx_reexpl_timestamp ON re_explanations(timestamp);
 """
 
 VALID_RELATIONS = frozenset({
@@ -183,7 +219,7 @@ def verify_db(conn: sqlite3.Connection) -> list[str]:
     ).fetchall()}
     expected = {'concepts', 'concept_sources', 'concept_edges',
                 'normalization_rules', 'extraction_log', 'schema_meta',
-                'weekly_summaries'}
+                'weekly_summaries', 'sessions', 're_explanations'}
     missing = expected - tables
     if missing:
         issues.append(f"Missing tables: {', '.join(sorted(missing))}")
