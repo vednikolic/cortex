@@ -34,7 +34,7 @@ NOW=$(date +%s)
 # but more substance than conversational sessions)
 if [ "$TURN_COUNT" -ge 8 ]; then
     echo "reflect:trigger:heavy-session turns=$TURN_COUNT $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
-    echo "$NOW" > "$REFLECT_DUE"
+    echo "heavy-session" > "$REFLECT_DUE"
     exit 0
 fi
 
@@ -44,7 +44,7 @@ if [ -f "$LAST_REFLECT" ]; then
     DIFF=$((NOW - LAST))
     if [ "$DIFF" -ge 86400 ]; then
         echo "reflect:trigger:daily-elapsed diff=${DIFF}s $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
-        echo "$NOW" > "$REFLECT_DUE"
+        echo "daily-elapsed" > "$REFLECT_DUE"
         exit 0
     fi
 fi
@@ -52,7 +52,7 @@ fi
 # Trigger if /save ran this session (last-session.json exists = substantive session)
 if [ -f "$HOME/.cortex/last-session.json" ]; then
     echo "reflect:trigger:save-ran $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GATE_LOG"
-    echo "$NOW" > "$REFLECT_DUE"
+    echo "save-ran" > "$REFLECT_DUE"
     exit 0
 fi
 
@@ -136,9 +136,23 @@ if [ -f "$REFLECT_LOG" ]; then
     fi
 fi
 
-# If reflect-gate flagged a reflect as due, remind the user
+# If reflect-gate flagged a reflect as due, remind with context
 if [ -f "$REFLECT_DUE" ]; then
-    echo "Recent sessions have unsurfaced patterns and stale entries. Run /reflect to find what your daily notes imply but haven't said."
+    TRIGGER=$(cat "$REFLECT_DUE")
+    case "$TRIGGER" in
+        heavy-session)
+            echo "Last session was substantial. New patterns may have emerged that /reflect can consolidate."
+            ;;
+        daily-elapsed)
+            echo "Over 24 hours since your last /reflect pass."
+            ;;
+        save-ran)
+            echo "/save captured new concepts after your last /reflect. A quick /reflect pass can integrate them."
+            ;;
+        *)
+            echo "New work since your last /reflect may have created patterns worth consolidating."
+            ;;
+    esac
     rm -f "$REFLECT_DUE"
 fi
 """
