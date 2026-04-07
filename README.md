@@ -11,13 +11,13 @@
 
 ## What this looks like in practice
 
-You solve a retry problem in your API project on Monday. Three weeks later you are debugging flaky requests in a different project. Cortex surfaces the connection: "retry-pattern appears in both my-api and my-app, established confidence." You already solved this. Your AI knows.
+You figure out the right approach to a problem on Monday. Three weeks later, in a different project, you hit the same kind of problem. Cortex surfaces the connection before you re-derive the answer. You already solved this.
 
-You step away from a project for two weeks. When you come back, your session brief shows the 4 decisions that were pending, which concepts were active, and 2 sessions your AI captured while you were doing other work. No archaeology required.
+You step away from a project for two weeks. When you come back, your AI already knows what decisions were pending, what you were working on, and what happened in the sessions since. No re-explaining, no scrolling through old notes.
 
-You explain "always use connection pooling, not per-request connections" for the third time in a month. Cortex flags it as a re-explanation: proof that this decision is not sticking in context. Either the briefing needs adjustment or the concept needs promotion.
+You correct your AI on the same point for the third time in a month. Cortex flags it: this decision is not sticking. Either the context needs restructuring or the concept needs more weight. You see the pattern instead of just feeling the frustration.
 
-A junior dev's memory file has 200 lines after three months: duplicates, stale entries, things that contradict each other. Your graph has 120 concepts with confidence levels. The tentative ones fade on their own. The established ones resist decay. The settled ones shape every session.
+After three months, a flat memory file is 200 lines of duplicates, stale entries, and contradictions. A cortex graph has 120 concepts with confidence levels. Things you mentioned once fade on their own. Things that keep showing up across projects get stronger automatically.
 
 ## How cortex works
 
