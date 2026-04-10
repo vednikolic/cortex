@@ -123,7 +123,9 @@ The extraction cap by weight: weight 1-2 allows up to 3 concepts, weight 3 up to
 ~/.cortex/concepts --root . --json list
 ```
 
-This returns all concept names with their kind, confidence, and source count. Use this to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --root . --json graph` to get edge and project counts for context.
+This returns a bare JSON array (not a wrapper object). Each element is a concept object with `name`, `kind`, `confidence`, and `source_count`. Iterate it directly: `names = [c['name'] for c in data]`. Do not call `data.get('concepts', ...)` -- that raises `AttributeError` because `data` is already the list.
+
+Use it to match proposed concepts against existing vocabulary before creating new entries. Also run `~/.cortex/concepts --root . --json graph` for context; that command returns a dict with keys `concepts`, `edges`, `sources`, `normalization_rules`, `extractions`, `projects`, `avg_edges_per_concept`, `confidence_distribution`.
 
 **3. Propose concepts:**
 
