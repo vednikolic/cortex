@@ -1,0 +1,31 @@
+{
+  "name": "workspace-memory",
+  "version": "0.1.0",
+  "description": "Workspace memory slash commands for save, reflect, and review workflows.",
+  "author": {
+    "name": "Cortex"
+  },
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "workspace",
+    "review"
+  ],
+  "interface": {
+    "displayName": "Workspace Memory",
+    "shortDescription": "Save, reflect, and review workspace memory.",
+    "longDescription": "Adds slash commands that route to portable workspace memory workflows.",
+    "developerName": "Cortex",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Save durable session learnings",
+      "Reflect on workspace memory",
+      "Review weekly memory signals"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

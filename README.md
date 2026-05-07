@@ -76,7 +76,28 @@ bash install.sh
 
 The installer prompts for your workspace directory. It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
 
-Requires an LLM coding assistant that supports `.claude/skills/` discovery. Python 3.10+ (stdlib only, no pip dependencies).
+Python 3.10+ required. Cortex is stdlib only, with no pip dependencies.
+
+## Portable workflows
+
+The reusable memory behavior lives in tool-neutral workflow contracts under `workflows/`. Adapter files are thin wrappers that point the local client at the same `save`, `reflect`, and `review` contracts.
+
+Install an adapter into a workspace:
+
+```bash
+concepts adapters install codex --workspace /path/to/workspace
+concepts adapters install gemini-cli --workspace /path/to/workspace
+concepts adapters install prompts --workspace /path/to/workspace
+concepts adapters install claude-code --workspace /path/to/workspace
+```
+
+Adapters install the shared contracts under `.agents/workflows/cortex/`, then add client-specific prompt, skill, or command wrappers. The generic `prompts` adapter works for any local LLM client with filesystem and shell access.
+
+For deterministic setup context used by reflect and review:
+
+```bash
+concepts --json workflow-context reflect --workspace /path/to/workspace
+```
 
 ## Quick start
 

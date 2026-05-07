@@ -26,6 +26,8 @@ from .capture import (
     query_sessions, format_session_oneline, update_session_status,
     record_re_explanation, re_explanation_stats,
 )
+from .adapters import install_adapter, SUPPORTED_ADAPTERS
+from .workflow_helpers import workflow_context
 
 
 def _resolve_db(args) -> Path:
@@ -692,6 +694,37 @@ def cmd_hooks(args):
     return 0
 
 
+def cmd_adapters(args):
+    if args.adapter_action == "install":
+        result = install_adapter(args.adapter, Path(args.workspace))
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"Installed {result['adapter']} adapter into {result['workspace']}")
+            print(f"Files written: {len(result['files_written'])}")
+            for item in result["follow_up"]:
+                print(f"Next: {item}")
+    return 0
+
+
+def cmd_workflow_context(args):
+    workspace = Path(args.workspace or args.root or ".")
+    result = workflow_context(workspace, days=args.days)
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Workspace: {result['workspace']}")
+        print(f"Today: {result['today']}")
+        print(f"Week start: {result['week_start']}")
+        print(f"Daily notes (7d): {len(result['daily_notes_7d'])}")
+        print(f"Stale revisit decisions: {len(result['stale_revisit_decisions'])}")
+        print(f"Repeated friction signals: {len(result['friction_counts'])}")
+        hygiene = result["memory_hygiene"]
+        print(f"Memory index bytes: {hygiene['index_bytes']}")
+        print(f"Memory orphans: {len(hygiene['orphans'])}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='concepts', description='Cortex concepts graph CLI')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -819,6 +852,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('action', choices=['install', 'status', 'verify'],
                    help='install: add hooks; status: check installation; verify: check ordering')
     p.set_defaults(func=cmd_hooks)
+
+    p = sub.add_parser('adapters', help='Install portable workflow adapters')
+    adapters_sub = p.add_subparsers(dest='adapter_action', required=True)
+    p_install = adapters_sub.add_parser('install', help='Install an adapter into a workspace')
+    p_install.add_argument('adapter', choices=SUPPORTED_ADAPTERS,
+                           help='Adapter to install')
+    p_install.add_argument('--workspace', required=True,
+                           help='Workspace root to install into')
+    p_install.set_defaults(func=cmd_adapters)
+
+    p = sub.add_parser('workflow-context',
+                       help='Collect deterministic context for memory workflows')
+    p.add_argument('workflow', choices=['reflect', 'review'],
+                   help='Workflow requesting context')
+    p.add_argument('--workspace', help='Workspace root (default: --root or cwd)')
+    p.add_argument('--days', type=int, default=7,
+                   help='Recent daily note window (default: 7)')
+    p.set_defaults(func=cmd_workflow_context)
 
     p = sub.add_parser('capture', help='Record a session from git state')
     p.add_argument('--files', help='Comma-separated list of modified files')
