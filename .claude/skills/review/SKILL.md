@@ -181,7 +181,7 @@ Then write a synthesis markdown file to `$WEEKLY_DIR/$WEEK_START.md`:
 
 ## Drift check
 - Goals with no work this week: [compare stated goals from $LEARNINGS against recent daily notes and graph activity]
-- Decisions marked revisit older than 14 days: [from project CLAUDE.md Decision Registers]
+- Decisions marked revisit older than 14 days: [from project AGENTS.md Decision Registers]
 
 ## Carry-forward signals
 - [1-3 unresolved signals from reflect log]

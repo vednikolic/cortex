@@ -42,7 +42,7 @@ Most memory tools write things down. Cortex connects what was written, strengthe
   | Friction |   | MEMORY.md    |   |  auth  pool  api |   | Signals: 1      |   | Decayed: 0      |
   | Concepts |   | Learnings    |   |     \ | /        |   | Promote: 1 cand |   | Weekly synthesis |
   +----------+   +--------------+   |    my-api        |   +-----------------+   +-----------------+
-                  4 destinations     +------------------+    7 analysis passes    weekly triage
+                  5 destinations     +------------------+    8 analysis passes    weekly triage
 ```
 
 ## Where cortex fits
@@ -74,7 +74,7 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory. It copies `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory. It copies the `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
 
 Python 3.10+ required. Cortex is stdlib only, with no pip dependencies.
 
@@ -135,7 +135,7 @@ Daily note (2-areas/me/daily/2026-03-24.md):
   Work: Fixed auth race condition, drafted API migration plan
   Tasks: 3 new, 2 carried over, 1 completed
 
-Project CLAUDE.md (my-api):
+Project AGENTS.md (my-api):
   Decisions: Use connection pooling over per-request connections [settled]
   Friction: Third time manually restarting dev server after config change
 
@@ -149,20 +149,23 @@ Signals:
   Opportunity: retry wrapper in my-api maps to flaky-endpoint friction in my-app
 ```
 
-`/save` routes each learning to one of four destinations:
+`/save` routes each learning to one of five destinations:
 
 | Where | What | Example |
 |---|---|---|
 | **Daily notes** | Work log, tasks, carry-overs | "Finished API migration, auth endpoint still needs tests" |
-| **Project CLAUDE.md** | Decisions, state, friction | "Chose JWT with 24h expiry. Refresh tokens in httpOnly cookies" |
+| **Project AGENTS.md** | Decisions, state, friction (falls back to CLAUDE.md) | "Chose JWT with 24h expiry. Refresh tokens in httpOnly cookies" |
+| **Project playbook** | Reusable execution patterns with dated proof | "Run migrations in a transaction. Proven on the v2 schema cutover" |
 | **MEMORY.md** | Cross-project patterns, environment | "Use per-project venvs, never system Python" |
 | **Learnings** | Working style, preferences | "Breaking PRs into <300 lines gets faster reviews" |
 
 Then it looks for signals: opportunities across projects, risk conflicts, converging needs.
 
+Short on context at the end of a long session? `/save --quick` writes only the daily note and leaves pattern detection to `/reflect`.
+
 ## What you get from /reflect
 
-Run weekly or after heavy sessions. Seven analysis passes over your accumulated memory, querying the knowledge graph directly:
+Run weekly or after heavy sessions. Eight analysis passes over your accumulated memory, querying the knowledge graph directly:
 
 ```
 > /reflect
@@ -181,7 +184,7 @@ Cross-project signals:
 
 Promotion candidates:
   "Always seed test data in fixtures, never in test bodies"
-  -- seen 3 times, mature enough for CLAUDE.md rule
+  -- seen 3 times, mature enough for an AGENTS.md rule
 ```
 
 `/reflect` never modifies your files. It surfaces findings. You decide what to act on.

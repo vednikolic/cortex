@@ -38,14 +38,13 @@ echo ""
 # Copy skills
 for skill in "${SKILLS[@]}"; do
     src="$CORTEX_DIR/.claude/skills/$skill/SKILL.md"
-    dest="$SKILLS_TARGET/$skill/SKILL.md"
     if [ ! -f "$src" ]; then
         echo "ERROR: $src not found. Run install.sh from the cortex repo root."
         exit 1
     fi
     mkdir -p "$SKILLS_TARGET/$skill"
-    cp "$src" "$dest"
-    echo "  Copied /$skill to $SKILLS_TARGET/$skill/SKILL.md"
+    cp -R "$CORTEX_DIR/.claude/skills/$skill/." "$SKILLS_TARGET/$skill/"
+    echo "  Copied /$skill to $SKILLS_TARGET/$skill/"
 done
 
 echo ""

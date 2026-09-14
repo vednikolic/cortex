@@ -1,7 +1,8 @@
 ---
 name: reflect
-description: "Background memory consolidation. Reviews MEMORY.md, project CLAUDE.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /reflect. Writes a consolidation report to the configured reflect log path. Never blocks. Never auto-promotes."
+description: "Background memory consolidation. Reviews MEMORY.md, project AGENTS.md files, and daily notes for patterns, stale entries, cross-project signals, and promotion candidates. Runs automatically post-heavy-session (Stop hook) or manually via /reflect. Writes a consolidation report to the configured reflect log path. Never blocks. Never auto-promotes."
 argument-hint: [optional focus area or project scope]
+model: sonnet
 allowed-tools: Read, Write, Edit, Glob, Bash(~/.cortex/concepts *), Bash(python3 -c *)
 ---
 
@@ -26,6 +27,8 @@ Read `.memory-config` from the workspace root (same directory as `.claude/`). Pa
 | `$WORKSPACE` | `workspace` | `personal` |
 
 All path references in this document use these variables. Resolve them before reading any files.
+
+Project context file: each project's `AGENTS.md`. If a project has only `CLAUDE.md`, read and write that file wherever this skill says project AGENTS.md.
 
 ---
 
@@ -83,8 +86,9 @@ Before running any analysis, locate and read these files. All paths are relative
 | Reflect log | `$REFLECT_LOG` | Last entry only (to avoid duplicating findings) |
 | Learnings | `$LEARNINGS` | Full file |
 | Daily notes | `$DAILY_DIR/YYYY-MM-DD.md` | Last 7 files by date; read only Work Log and Tasks sections |
-| Project CLAUDE.md files | `$PROJECT_ROOT/*/CLAUDE.md` (use `find $PROJECT_ROOT -name "CLAUDE.md" -maxdepth 3`) | Friction Log, Decision Register, and architecture sections |
-| Root CLAUDE.md | `CLAUDE.md` (workspace root) | `## Rules` section only (for Pass 7) |
+| Project AGENTS.md files | `$PROJECT_ROOT/*/AGENTS.md` (use `find $PROJECT_ROOT -maxdepth 3 \( -name "AGENTS.md" -o -name "CLAUDE.md" \)`, preferring AGENTS.md when both exist) | Friction Log, Decision Register, and architecture sections |
+| Root AGENTS.md | `AGENTS.md` (workspace root) | `## Rules` section (for Pass 7 universal rules) |
+| Root CLAUDE.md | `CLAUDE.md` (workspace root) | Claude-specific addenda only |
 | Publish audit deny list | `~/.claude/scripts/publish-audit.sh` | `DENY_PATTERNS` array only (for Pass 7) |
 
 Do not read full session transcripts. Too expensive and too noisy. The daily notes are the already-distilled record.
@@ -92,7 +96,7 @@ Do not read full session transcripts. Too expensive and too noisy. The daily not
 **Graceful handling of missing inputs:**
 - If fewer than 7 daily notes exist (new user), use however many are available. A user with 2 days of notes still gets a useful reflect pass over those 2 days. Stale detection uses the available window, not a fixed 7.
 - If MEMORY.md has no `## Promotion Queue` section, skip Pass 4 entirely and note "No promotion queue found" in the reflect-log entry under "No action required."
-- If no project CLAUDE.md files exist under `$PROJECT_ROOT/`, skip Pass 2 (friction promotion) and Pass 3 (cross-project signals). Report "No project CLAUDE.md files found" in the reflect-log. Passes 1, 4, 5, and 6 can still run against MEMORY.md, learnings, and daily notes.
+- If no project AGENTS.md files exist under `$PROJECT_ROOT/`, skip Pass 2 (friction promotion) and Pass 3 (cross-project signals). Report "No project AGENTS.md files found" in the reflect-log. Passes 1, 4, 5, and 6 can still run against MEMORY.md, learnings, and daily notes.
 - Daily note entries tagged `[sensitive]` must be excluded from pattern analysis, concept matching, and cross-project signal detection. Read them only for their date presence (to count active days) but not their content. This prevents sensitive session data from leaking into reflect-log findings.
 
 ---
@@ -118,21 +122,21 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 
 ### Pass 1: Stale detection
 
-**Input:** All entries in MEMORY.md, all entries in each project CLAUDE.md under `$PROJECT_ROOT/`, the last 7 daily notes from `$DAILY_DIR/`.
+**Input:** All entries in MEMORY.md, all entries in each project AGENTS.md under `$PROJECT_ROOT/`, the last 7 daily notes from `$DAILY_DIR/`.
 **Output:** A list of `[STALE?]` flags for the reflect-log.md Stale Flags section.
 
 1. Extract every discrete entry (bullet point, decision, or note) from MEMORY.md.
-2. Extract every discrete entry from each project CLAUDE.md found under `$PROJECT_ROOT/`.
+2. Extract every discrete entry from each project AGENTS.md found under `$PROJECT_ROOT/`.
 3. For each entry, extract 2-3 key terms (proper nouns, tool names, concept names).
 4. Grep the last 7 daily notes for each key term. If zero matches across all 7 notes AND the entry is not tagged `[permanent]`, mark as `[STALE?]`.
 5. For Decision Register entries tagged `[revisit]`, compute days since the entry date. If older than 14 days, flag as overdue for revisit.
 
 ### Pass 2: Friction promotion
 
-**Input:** Friction Log sections from each project CLAUDE.md under `$PROJECT_ROOT/`.
+**Input:** Friction Log sections from each project AGENTS.md under `$PROJECT_ROOT/`.
 **Output:** A list of friction escalations for the reflect-log.md Friction Escalations section.
 
-1. Collect all Friction Log entries from every project CLAUDE.md.
+1. Collect all Friction Log entries from every project AGENTS.md.
 2. For each unique friction description, count distinct date prefixes (each entry has a date prefix).
 3. If 3+ appearances: add to the report as "automation candidate".
 4. If 5+ appearances: escalate in the reflect-log with "URGENT: Build fix for: [friction description]" and recommend the user create a task. Do not write directly to the daily note (Constraint 2: /reflect never writes to daily notes).
@@ -140,7 +144,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 
 ### Pass 3: Cross-project signal detection
 
-**Input:** All project CLAUDE.md files under `$PROJECT_ROOT/`, MEMORY.md, the last 7 daily notes.
+**Input:** All project AGENTS.md files under `$PROJECT_ROOT/`, MEMORY.md, the last 7 daily notes.
 **Output:** 3-5 signal entries for the reflect-log.md Cross-Project Signals section, each classified as OPPORTUNITY, RISK, or CONVERGENCE.
 
 **When $GRAPH_AVAILABLE is true**, query the graph directly instead of raw text matching:
@@ -151,7 +155,7 @@ Run each pass in sequence. Each pass is cheap (pattern match over structured tex
 
 This is the second-brain pass. It requires model reasoning (string matching alone cannot detect conceptual overlap).
 
-1. Extract all named concepts, tools, decisions, and problem areas from each project CLAUDE.md.
+1. Extract all named concepts, tools, decisions, and problem areas from each project AGENTS.md.
 2. Compare pairwise across projects. For each concept appearing in 2+ projects, classify as:
    - **OPPORTUNITY**: shared abstraction, reusable component, or naming convergence.
    - **RISK**: conflicting assumptions, architectural contradiction, or unacknowledged dependency.
@@ -186,7 +190,7 @@ Examples of what this catches:
 3. For each idea or goal, search the 14 daily notes for mentions (use loose matching: same concept, different phrasing counts).
 4. If an idea appears in 2+ daily notes but has no corresponding Work Log entry: flag as "dormant idea, mentioned N times, not acted on".
 5. If a stated goal from learnings.md has zero Work Log entries in the last 14 days: flag as "stagnant goal".
-6. If an interest or growth area from learnings.md connects to an active project (appears in a project CLAUDE.md): flag as "connection opportunity" with the project name.
+6. If an interest or growth area from learnings.md connects to an active project (appears in a project AGENTS.md): flag as "connection opportunity" with the project name.
 
 ### Pass 6: Graph health (requires concepts CLI)
 
@@ -223,6 +227,25 @@ This pass checks whether constraint-type learnings have corresponding enforcemen
 6. Write findings to the Constraint Governance section of the reflect-log. If no gaps found, write "All N constraints covered. No gaps detected."
 
 This pass is read-only. It MUST NOT edit CLAUDE.md, publish-audit.sh, or learnings.md. It surfaces recommendations only.
+
+---
+
+### Pass 8: File hygiene
+
+**Input:** `$MEMORY_DIR/MEMORY.md`, `$LEARNINGS`, root `AGENTS.md`, root `CLAUDE.md`, all files in `$MEMORY_DIR/*.md`.
+**Output:** A file hygiene section in the reflect-log entry.
+
+This pass watches for drift toward index bloat and truncation. It does NOT refactor. It reports.
+
+Checks:
+
+1. **MEMORY.md size**: measure byte size. Warn at >15KB, error at >24KB (the index truncation threshold). One line entry for each threshold crossed.
+2. **MEMORY.md index entry length**: count entries exceeding 200 characters. Every index entry should be ≤150 chars; long entries indicate embedded content that belongs in a topic file.
+3. **learnings.md scope violations**: scan for entries containing project names (grep for `$PROJECT_ROOT/`, common project basenames), file paths, commit SHAs (7+ hex chars), regex patterns (backtick + `[` + `\\`), tool flags (`--\w+`), or dated proof points (`20\d\d-\d\d-\d\d`). Report count and 3 examples. These should route to project playbook per the `/save` strict scope test.
+4. **Topic file orphans**: list every `.md` file in `$MEMORY_DIR/` other than `MEMORY.md`. Check if each is referenced in `MEMORY.md`. Unreferenced topic files are orphans; either add an index entry or archive them.
+5. **Rule duplication across AGENTS.md and CLAUDE.md**: do a rough textual overlap check. If a sentence of >60 characters appears in both root `AGENTS.md` and root `CLAUDE.md`, flag for consolidation.
+
+This pass is read-only. It surfaces recommendations only; no auto-refactor.
 
 ---
 
@@ -271,8 +294,20 @@ Unprotected:
 - learnings.md L73: references "ProjectX" -- no deny pattern in publish-audit.sh
 
 Recommendations:
-- Add to CLAUDE.md Rules: [proposed rule text]
+- Add to AGENTS.md Rules (universal) or CLAUDE.md (Claude-specific): [proposed rule text]
 - Add to publish-audit.sh DENY_PATTERNS: 'pattern'
+
+### File hygiene
+- MEMORY.md size: N KB (warn at 15KB, error at 24KB)
+- Long index entries: K entries over 200 chars (should be ≤150) -- examples: [entry 1], [entry 2]
+- learnings.md scope violations: K entries with project/path/regex/SHA markers -- examples: [text 1]
+- Topic file orphans: [list unreferenced .md files in memory dir]
+- Rule duplication: [duplicated sentences between AGENTS.md and CLAUDE.md]
+
+Recommendations:
+- Extract long index entries to new topic files
+- Route learnings.md violations to project playbook per /save strict scope test
+- Archive or index orphan topic files
 ```
 
 Keep each entry to one line. No paragraphs. The log is a feed, not a document.
@@ -295,7 +330,7 @@ python3 -c "import time, pathlib; pathlib.Path.home().joinpath('.claude','reflec
 These are hard constraints. Violating any of them is a bug.
 
 1. **Never writes to MEMORY.md.** Reflect reads MEMORY.md but never modifies it. All findings go to reflect-log.md only.
-2. **Never writes to project CLAUDE.md files or daily notes.** It surfaces findings. You decide what to act on.
+2. **Never writes to project AGENTS.md files or daily notes.** It surfaces findings. You decide what to act on.
 3. **Never auto-promotes entries to root CLAUDE.md.** It recommends promotions in the report. A human reviews and acts.
 4. **Never deletes stale entries.** It flags them as `[STALE?]`. Deletion is a human decision.
 5. **Never runs synchronously during a session.** Always async (Stop hook) or manual invocation. It must not block interactive work.
