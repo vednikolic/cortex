@@ -11,6 +11,8 @@ Turn accumulated signals into decisions. Reflect surfaces patterns; review decid
 - Workspace memory and project context files
 - Cortex CLI reads, when available at `<concepts-command>`
 
+Project context file: each project's `AGENTS.md`. If a project has no `AGENTS.md`, use the agent instruction file it does have. Revisit decisions come from the Decision Register in each project context file.
+
 ## Procedure
 
 1. Resolve workspace paths from `.memory-config`; otherwise use local defaults.

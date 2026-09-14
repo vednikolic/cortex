@@ -11,7 +11,18 @@ from cortex_lib.adapters import install_adapter
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-@pytest.mark.parametrize("workflow", ["save.md", "reflect.md", "review.md"])
+PORTABLE_CONTRACTS = [
+    "save.md",
+    "reflect.md",
+    "review.md",
+    "references/anti-noise.md",
+    "references/insight-quality.md",
+    "references/routing.md",
+    "references/weekly-synthesis.md",
+]
+
+
+@pytest.mark.parametrize("workflow", PORTABLE_CONTRACTS)
 def test_portable_contract_has_no_tool_specific_assumptions(workflow):
     text = (REPO_ROOT / "workflows" / workflow).read_text().lower()
     banned = [
@@ -26,6 +37,26 @@ def test_portable_contract_has_no_tool_specific_assumptions(workflow):
     ]
     for term in banned:
         assert term not in text
+
+
+@pytest.mark.parametrize(
+    ("workflow", "required"),
+    [
+        ("save.md", "agents.md"),
+        ("save.md", "no second occurrence"),
+        ("save.md", "rule promotion"),
+        ("save.md", "what not to save"),
+        ("save.md", "mode: quick"),
+        ("reflect.md", "agents.md"),
+        ("reflect.md", "15 kb"),
+        ("reflect.md", "read only"),
+        ("review.md", "agents.md"),
+        ("references/routing.md", "create the playbook"),
+    ],
+)
+def test_portable_contract_matches_skill_behavior(workflow, required):
+    text = (REPO_ROOT / "workflows" / workflow).read_text().lower()
+    assert required in text
 
 
 @pytest.mark.parametrize("adapter", ["claude-code", "gemini-cli", "codex", "prompts"])

@@ -14,6 +14,10 @@ Review saved workspace memory and infer what it implies. The goal is useful deci
 
 Do not read raw transcripts. Use saved notes and project files as the distilled record.
 
+Project context file: each project's `AGENTS.md`. If a project has no `AGENTS.md`, use the agent instruction file it does have.
+
+Reflect is read only except for appending one reflect log entry. It never edits memory, learnings, project context, or daily notes, and never auto-promotes. It recommends; the user decides.
+
 ## Procedure
 
 1. Resolve workspace paths from `.memory-config`; otherwise use local defaults.
@@ -65,7 +69,14 @@ Scan saved rules for terms like never, always, must, do not, block, prevent, aud
 
 ### File Hygiene
 
-Check memory index size, long entries, orphan topic files, project context drift, and duplicate live sources that should be archived or canonicalized.
+Report only; do not refactor.
+
+- memory index size: warn above 15 KB, error above 24 KB, where index truncation starts
+- long index entries: count entries over 200 characters. Entries should stay at 150 or fewer; longer ones belong in topic files
+- learnings scope violations: count entries with project names, file paths, commit hashes, regexes, command flags, or dated proof points, with up to 3 examples to reroute to project playbooks
+- orphan topic files: memory files not referenced from the index
+- rule duplication: sentences over 60 characters repeated across root agent instruction files
+- project context drift and duplicate live sources that should be archived or canonicalized
 
 ## Anti-Noise Rules
 
