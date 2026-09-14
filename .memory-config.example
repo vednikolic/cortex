@@ -19,7 +19,7 @@ workspace: personal
 # Uncomment and customize for non-directory-based projects:
 # projects:
 #   cortex: 1-projects/memory/cortex
-#   website: 1-projects/ved-website
+#   website: 1-projects/my-website
 #   strategy: 2-areas/me
 
 # Sensitive session handling
