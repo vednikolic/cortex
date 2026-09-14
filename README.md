@@ -74,7 +74,7 @@ cd cortex
 bash install.sh
 ```
 
-The installer prompts for your workspace directory. It copies the `/save`, `/reflect`, and `/review` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
+The installer prompts for your workspace directory. It copies the `/save`, `/reflect`, `/review`, and `cortex-graph` skills into that workspace's `.claude/skills/`, installs the `concepts` CLI to `~/.cortex/`, deploys 9 automated hook scripts, and optionally creates `.memory-config` for path customization.
 
 Python 3.10+ required. Cortex is stdlib only, with no pip dependencies.
 

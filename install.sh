@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # cortex installer
-# Copies /save, /reflect, and /review skills into a workspace's .claude/skills/ directory.
+# Copies /save, /reflect, /review, and cortex-graph skills into a workspace's .claude/skills/ directory.
 # Skills are discovered from project-local .claude/skills/<name>/SKILL.md.
 # Global ~/.claude/skills/ does NOT support skill discovery (verified 2026-03-23).
 # Optionally creates .memory-config in the same workspace.
 
 CORTEX_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILLS=("save" "reflect" "review")
+SKILLS=("save" "reflect" "review" "cortex-graph")
 
 echo "cortex installer"
 echo "================"
