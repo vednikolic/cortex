@@ -89,7 +89,7 @@ If `$ARGUMENTS` provided a focus area, prioritize that topic.
 
 ### Step 2b: Queue concept extraction (requires concepts CLI)
 
-**Skip if:** `--sensitive` flag provided, `~/.cortex/concepts` does not exist, or session had no meaningful content.
+**Skip if:** `--sensitive` flag provided, `~/.cortex/concepts` does not exist, or session had no meaningful content (pure Q&A with no decisions, tools, or patterns). With `--sensitive`, skip this step entirely: propose no concepts or edges and do not write `last-session.json`.
 
 **Auto-init:** if `~/.cortex/concepts` exists but `concepts.db` does not exist in the workspace root, run `~/.cortex/concepts init`.
 
@@ -101,17 +101,19 @@ If `$ARGUMENTS` provided a focus area, prioritize that topic.
 
 Also: `~/.cortex/concepts --root . --json graph` for context (dict with `concepts`, `edges`, `sources`, `normalization_rules`, `extractions`, `projects`, `avg_edges_per_concept`, `confidence_distribution`).
 
-**Propose concepts.** For each, pick:
+**Propose concepts.** Up to the extraction cap, keep only concepts that represent tools, patterns, decisions, or recurring themes (not ephemeral details) and have at least one clear relationship. For each, pick:
 
-- `name` canonical (match existing vocabulary first)
+- `name` canonical: check existing vocabulary first and prefer matching an existing concept over creating a new one
 - `kind` ∈ {topic, tool, pattern, decision, person, project}
-- Relationships to existing/co-proposed concepts with relation ∈ {related-to, depends-on, conflicts-with, enables, is-instance-of, supersedes, blocked-by, derived-from}
+- Edges to existing/co-proposed concepts. Use only these 8 relation types: {related-to, depends-on, conflicts-with, enables, is-instance-of, supersedes, blocked-by, derived-from}
 
 **Write to `~/.cortex/last-session.json`** using the Write tool. Session hash = MD5 of `(summary + ISO_timestamp)`, first 16 chars:
 
 ```bash
 python3 -c "import hashlib; print(hashlib.md5(('summary 2026-03-24T20:00:00').encode()).hexdigest()[:16])"
 ```
+
+Set `project` from the `.memory-config` `projects:` section, or the working directory when none matches.
 
 Schema:
 ```json
@@ -128,7 +130,9 @@ Schema:
 }
 ```
 
-The Stop hook (`concept-extract.sh`) reads this file after the session ends.
+`rejected_count` is an integer only. Never list rejected concept names; they can contain sensitive terms.
+
+The Stop hook (`concept-extract.sh`) reads this file after the session ends and upserts the concepts and edges into the graph. /save itself never writes to the graph.
 
 ### Step 3: Route entries
 
