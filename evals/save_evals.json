@@ -14,7 +14,7 @@
     {
         "id": "has_routing_table",
         "category": "structure",
-        "check": "Does the document include a routing table or decision matrix that maps entry types to specific destination files (MEMORY.md, project CLAUDE.md, learnings, daily notes)?",
+        "check": "Does the document include a routing table or decision matrix that maps entry types to specific destination files (MEMORY.md, project AGENTS.md, project playbook, learnings, daily notes)?",
         "weight": 1.5
     },
     {
@@ -24,15 +24,15 @@
         "weight": 1.0
     },
     {
-        "id": "routes_to_four_destinations",
+        "id": "routes_to_five_destinations",
         "category": "routing",
-        "check": "Does the document explicitly route entries to exactly four destination types: global MEMORY.md, project CLAUDE.md, personal learnings file, and daily notes?",
+        "check": "Does the document explicitly route entries to exactly five destination types: global MEMORY.md, project AGENTS.md, project playbook, personal learnings file, and daily notes?",
         "weight": 1.5
     },
     {
         "id": "global_vs_project_distinction",
         "category": "routing",
-        "check": "Does the document provide clear rules or a rule of thumb for distinguishing what goes in global MEMORY.md versus project CLAUDE.md versus personal learnings?",
+        "check": "Does the document provide clear rules or a rule of thumb for distinguishing what goes in global MEMORY.md versus project AGENTS.md versus project playbook versus personal learnings?",
         "weight": 1.0
     },
     {

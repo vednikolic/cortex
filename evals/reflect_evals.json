@@ -44,7 +44,7 @@
     {
         "id": "cross_project_signals_defined",
         "category": "analysis",
-        "check": "Does the document define cross-project signal detection that compares concepts across project CLAUDE.md files and classifies findings into categories (e.g., opportunity, risk, convergence)?",
+        "check": "Does the document define cross-project signal detection that compares concepts across project AGENTS.md files and classifies findings into categories (e.g., opportunity, risk, convergence)?",
         "prd_ref": "phase3.reflect.cross_project",
         "weight": 1.0
     },
@@ -149,7 +149,7 @@
     {
         "id": "reads_defined_sources",
         "category": "completeness",
-        "check": "Does the document explicitly list all files/sources that /reflect reads (MEMORY.md, reflect-log, learnings, daily notes, project CLAUDE.md files) with specific paths or path patterns?",
+        "check": "Does the document explicitly list all files/sources that /reflect reads (MEMORY.md, reflect-log, learnings, daily notes, project AGENTS.md files) with specific paths or path patterns?",
         "prd_ref": "phase1.reflect.inputs",
         "weight": 1.0
     },
@@ -231,9 +231,9 @@
         "weight": 1.0
     },
     {
-        "id": "handles_no_project_claude_files",
+        "id": "handles_no_project_context_files",
         "category": "edge_case",
-        "check": "Does the document address what happens if no project CLAUDE.md files exist under $PROJECT_ROOT (e.g., a fresh workspace with no projects)?",
+        "check": "Does the document address what happens if no project AGENTS.md (or CLAUDE.md) files exist under $PROJECT_ROOT (e.g., a fresh workspace with no projects)?",
         "prd_ref": "phase1.reflect.robustness",
         "weight": 1.0
     },
