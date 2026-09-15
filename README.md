@@ -199,25 +199,26 @@ Run weekly. Triages accumulated signals and generates a synthesis snapshot:
 Promotion eligible (5 concepts):
 
   Recommend promote:
-  1. postgresql (5 sources, 3 projects)
+  1. postgresql (5 sources, 3 projects, tentative -> established)
      What: Your most-used database tool across my-api, my-app, and admin-dashboard.
      Why listed: 3+ sources AND 2+ projects. High-confidence cross-project concept.
      Promoting it: /reflect will prioritize postgresql connections in cross-project
      signals. It resists stale detection for 90 days instead of 60.
 
-  2. retry-pattern (3 sources, 2 projects)
+  2. retry-pattern (3 sources, 2 projects, tentative -> established)
      What: Error handling pattern used in my-api and my-app.
      Why listed: Appears in 2 projects with 3 independent sources.
      Promoting it: Strengthens the signal that both projects share this need.
 
   Recommend defer:
-  3. redis-caching (2 sources, 1 project)
+  3. redis-caching (2 sources, 1 project, tentative)
      What: Caching layer discussed in my-api only.
      Why listed: 2 sources, but single-project and not referenced in 14 days.
      Deferring: Wait for a second project reference or continued usage.
 
-Promoted 1-2 automatically. Deferred 3 (single-project, no recent references).
-Tip: To undo a promotion, run `concepts correct <name>` or tell me to demote any by number.
+Promote 1-2 as recommended? Reply "yes", give numbers to change, or "none".
+
+> yes
 
 Stale (1):
   "feature-flag-rollout" -- not referenced in 21 days
@@ -225,7 +226,7 @@ Stale (1):
 Review complete.
 
 Triage:
-  Promoted: 2 concepts (auto)
+  Promoted: 2 concepts (confirmed)
   Dismissed: 0 edges
   Deferred: 1 item
 
@@ -293,7 +294,7 @@ Not every concept is equally important. Something you mention once might be nois
 | **Established** | Keeps showing up. This is a real part of your work. | Resists stale detection longer (90 days). Gets higher priority in /reflect cross-project signals |
 | **Settled** | Foundational. Shapes how your projects connect. | Strongest resistance to decay. Highest priority in context injection and signal detection |
 
-`/review` automatically promotes concepts that cross the threshold (3+ sources, or appears in 2+ projects). You see what was promoted and can adjust, demote, or dismiss anything you disagree with. The defaults are conservative enough that auto-promotion is safe, and you always have the final say.
+`/review` recommends promoting concepts that cross the threshold (3+ sources, or appears in 2+ projects) and waits for your answer before changing the graph. One reply confirms the whole batch, or names the numbers to change. Nothing is promoted, dismissed, or corrected without your say.
 
 Why this matters: without confidence levels, your AI treats a concept you mentioned once the same as one that connects five projects. Promotion is how you tell the graph "this is real, pay attention to it." Over time, the settled concepts become the backbone of your knowledge graph, and the tentative ones fade naturally if they stop being relevant.
 

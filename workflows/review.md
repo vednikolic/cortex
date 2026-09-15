@@ -21,7 +21,7 @@ Project context file: each project's `AGENTS.md`. If a project has no `AGENTS.md
 4. Gather unreviewed reflect entries since that synthesis.
 5. Run graph reads when available.
 6. Triage candidates into promote, defer, dismiss, act now, or watch.
-7. Apply graph promotions or decay only when requested or when the review explicitly includes applying weekly decisions.
+7. Present promote, dismiss, and correction recommendations as a numbered list and ask the user to confirm. Change the graph only for items the user confirmed; unconfirmed items count as deferred. Rule based confidence decay may run without confirmation because it never deletes anything. Never create concepts or edges during review.
 8. Write or update the weekly synthesis file.
 9. Report decisions and residual risks.
 

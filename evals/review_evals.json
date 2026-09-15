@@ -294,9 +294,9 @@
         "weight": 1.0
     },
     {
-        "id": "review_auto_promotes_by_default",
+        "id": "review_asks_before_promoting",
         "category": "behavioral",
-        "check": "Does /review auto-promote eligible concepts without waiting for user confirmation, present a numbered report with structured explanations (what, why listed, effect), and offer a tip for how to adjust or undo promotions after the fact?",
+        "check": "Does /review present eligible concepts as a numbered list of recommendations with structured explanations (what, why listed, effect), then ask the user to confirm before running any promote command, promoting only the concepts the user confirmed?",
         "prd_ref": "phase3c.auto_promote",
         "weight": 1.0
     }

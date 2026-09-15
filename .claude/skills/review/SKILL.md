@@ -6,7 +6,9 @@ user-invocable: true
 
 # /review -- Weekly Signal Triage
 
-Review accumulated signals and make decisions. Promotes concepts that have earned higher confidence, dismisses noise, and generates a weekly synthesis showing how your knowledge graph is evolving.
+Review accumulated signals and help the user decide. Recommends promotions for concepts that have earned higher confidence, flags noise to dismiss, and generates a weekly synthesis showing how your knowledge graph is evolving.
+
+**Confirmation rule:** every graph change made during triage (promote, dismiss, correct, merge) waits for explicit user confirmation. Confidence decay in Step 4 is the only automatic change, because it follows fixed thresholds and never deletes anything. /review never creates concepts or edges.
 
 ## When to run
 
@@ -63,7 +65,7 @@ Present each signal category to the user with recommended actions:
 **Promotion eligible:**
 Present promotions as a numbered list, grouped into "Recommend promote" and "Recommend defer." For each concept, show four lines:
 
-1. **Name and stats**: concept name, source count, project count
+1. **Name and stats**: concept name, source count, project count, current confidence, and suggested level
 2. **What**: one sentence describing what this concept represents in the user's work
 3. **Why listed**: which threshold it crossed (3+ sources, 2+ projects, or both) and what makes it significant
 4. **Promoting it / Deferring it**: one sentence on the concrete effect. For promotions: what changes (e.g., "resists stale detection for 90 days instead of 60, gets higher priority in /reflect cross-project signals"). For deferrals: why waiting is better (e.g., "single-project, wait for a second project reference")
@@ -71,28 +73,27 @@ Present promotions as a numbered list, grouped into "Recommend promote" and "Rec
 Example format:
 ```
 Recommend promote:
-1. postgresql (5 sources, 3 projects)
+1. postgresql (5 sources, 3 projects, tentative -> established)
    What: Your most-used database tool across my-api, my-app, and admin-dashboard.
    Why listed: 3+ sources AND 2+ projects. High-confidence cross-project concept.
    Promoting it: Gets higher priority in /reflect signals. Resists stale detection for 90 days instead of 60.
 
 Recommend defer:
-3. redis-caching (2 sources, 1 project)
+3. redis-caching (2 sources, 1 project, tentative)
    What: Caching layer discussed in my-api only.
    Why listed: 2 sources meets minimum, but single-project and not referenced recently.
    Deferring: Wait for a second project reference or continued usage before promoting.
 ```
 
-**Default behavior: auto-promote.** Concepts that cross the threshold are promoted automatically. Present the numbered list as a report of what was promoted and what was deferred, not as a question. End with:
+**Default behavior: ask before promoting.** Present the numbered list as recommendations, then stop and ask. End with:
 
 ```
-Promoted 1-N automatically. Deferred M-K (reasons above).
-Tip: To undo a promotion, run `concepts correct <name>` or tell me to demote any concept by number.
+Promote 1-N as recommended? Reply "yes", give numbers to change (e.g. "promote 1, 2, 12; defer 3"), or "none".
 ```
 
-The user can adjust after the fact ("demote 3", "also promote 12") but does not need to approve each one. This keeps the review fast. The thresholds are conservative enough that auto-promotion is safe: 3+ independent sources or 2+ projects is a high bar.
+Do not run any `promote` command until the user answers. Promote only the concepts the user confirmed. Everything else counts as deferred and carries forward in the weekly synthesis. The user can batch the answer in one reply, so the review stays fast without changing the graph behind their back.
 
-For confirmed promotions:
+For confirmed promotions only:
 ```bash
 ~/.cortex/concepts --root . promote "$name" $level
 ```
@@ -116,7 +117,7 @@ If `~/.claude/memory/correction-queue.json` exists and has entries, present each
 - Concept name, what was flagged, when it was flagged
 - Your recommendation: accept correction (rename/merge/remove), or dismiss
 
-For accepted corrections:
+Ask the user to accept or dismiss each item. For corrections the user accepted:
 ```bash
 ~/.cortex/concepts --root . correct "$name" --rename "$new_name"
 ~/.cortex/concepts --root . merge "$source" "$target"
@@ -129,7 +130,7 @@ For unreviewed reflect entries, present:
 - The finding text
 - Your recommendation: act now, defer, or dismiss
 
-For edge dismissals:
+For edge dismissals the user confirmed:
 ```bash
 ~/.cortex/concepts --root . dismiss $edge_id
 ```
