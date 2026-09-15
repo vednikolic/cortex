@@ -359,13 +359,14 @@ Without `.memory-config`, PARA defaults are used. See `.memory-config.example` f
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
-python -m pytest tests/ -v    # 218 unit tests
+python -m pytest tests/ -v    # 262 unit tests
 ```
 
-LLM evals (requires `claude` CLI):
+LLM evals (requires `claude` CLI). For a skill with a `references/` folder, the reference files are scored with `SKILL.md`. Judge calls skip your user hooks, so eval runs never show up as sessions:
 
 ```bash
 cd evals
+python3 eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json --verbose
 python3 eval.py ../.claude/skills/save/SKILL.md --evals extraction_evals.json --verbose
 python3 eval.py ../.claude/skills/reflect/SKILL.md --evals reflect_evals.json --verbose
 python3 eval.py ../.claude/skills/review/SKILL.md --evals review_evals.json --verbose

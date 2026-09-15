@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
 Cortex Skill Eval Harness
-Scores /save and /reflect SKILL.md files with binary evals.
+Scores /save, /reflect, and /review SKILL.md files with binary evals.
 
-Uses `claude -p` as the LLM judge.
+Uses `claude -p` as the LLM judge. When the target is a SKILL.md with a
+sibling references/ directory, the reference files are appended so the judge
+sees everything the skill can load. Judge calls skip user settings (and their
+hooks) and run from a temporary directory, so evals never record sessions.
 
 Usage:
     python eval.py ../.claude/skills/save/SKILL.md --evals save_evals.json
@@ -12,9 +15,11 @@ Usage:
 """
 
 import json
+import os
 import subprocess
 import sys
-import os
+import tempfile
+from pathlib import Path
 
 JUDGE_SYSTEM = """You are a strict binary document evaluator. You will be given a document and a yes/no question about it.
 
@@ -45,6 +50,28 @@ def load_evals(evals_path: str) -> list[dict]:
     return [normalize_item(ev) for ev in items]
 
 
+def load_document(document_path: str) -> str:
+    """Read the target document, appending references/*.md for a SKILL.md."""
+    path = Path(document_path)
+    document = path.read_text()
+    refs_dir = path.parent / "references"
+    if path.name == "SKILL.md" and refs_dir.is_dir():
+        for ref in sorted(refs_dir.glob("*.md")):
+            document += f"\n\n<!-- references/{ref.name} -->\n\n{ref.read_text()}"
+    return document
+
+
+def judge_command() -> list[str]:
+    """Build the claude -p judge invocation without user hooks or saved sessions."""
+    return [
+        "claude", "-p",
+        "--model", "sonnet",
+        "--system-prompt", JUDGE_SYSTEM,
+        "--setting-sources", "project",
+        "--no-session-persistence",
+    ]
+
+
 def evaluate_single(document: str, eval_item: dict) -> dict:
     """Run a single binary eval via claude -p."""
     prompt = f"""<document>
@@ -57,12 +84,9 @@ Answer YES or NO only."""
 
     try:
         result = subprocess.run(
-            [
-                "claude", "-p",
-                "--model", "sonnet",
-                "--system-prompt", JUDGE_SYSTEM,
-            ],
+            judge_command(),
             input=prompt,
+            cwd=tempfile.gettempdir(),
             capture_output=True,
             text=True,
             timeout=120,
@@ -96,8 +120,7 @@ def run_evals(document_path: str, evals_path: str, verbose: bool = False) -> dic
     """Run all evals against a document."""
     evals = load_evals(evals_path)
 
-    with open(document_path, "r") as f:
-        document = f.read()
+    document = load_document(document_path)
 
     results = []
     for i, eval_item in enumerate(evals):
